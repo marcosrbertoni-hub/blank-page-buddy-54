@@ -361,7 +361,7 @@ function BuildingLayer({
 
       </instancedMesh>
 
-      <instancedMesh ref={roofRef} args={[ROOF_GEOMETRY, roofMaterial, Math.max(1, items.length)]} castShadow>
+      <instancedMesh ref={roofRef} args={[ROOF_GEOMETRY, roofMaterial, Math.max(1, items.length)]} onClick={handleClick} onPointerDown={handleClick}>
 
       </instancedMesh>
 
@@ -482,7 +482,7 @@ function ServiceBuilding({
         onClick();
       }}
     >
-      <mesh castShadow receiveShadow position={[0, height / 2, 0]}>
+      <mesh receiveShadow position={[0, height / 2, 0]}>
         <boxGeometry args={[width, height, 2.35]} />
         <meshStandardMaterial
           color={selected ? "#f0c85b" : palette[kind] ?? "#88909a"}
@@ -490,12 +490,12 @@ function ServiceBuilding({
           metalness={kind === "power" ? 0.28 : 0.05}
         />
       </mesh>
-      <mesh castShadow position={[0, height + 0.18, 0]}>
+      <mesh position={[0, height + 0.18, 0]}>
         <boxGeometry args={[width * 1.04, 0.32, 2.45]} />
         <meshStandardMaterial color={roof[kind] ?? "#555"} roughness={0.72} />
       </mesh>
       {kind === "fire" && (
-        <mesh castShadow position={[0, height + 1.1, 0]}>
+        <mesh position={[0, height + 1.1, 0]}>
           <cylinderGeometry args={[0.2, 0.25, 2, 10]} />
           <meshStandardMaterial color="#d8d8d8" metalness={0.35} roughness={0.45} />
         </mesh>
@@ -572,7 +572,7 @@ function Water({ onTileClick }: { onTileClick: (index: number) => void }) {
 function Cars({ paused }: { paused: boolean }) {
   const cars = useMemo(
     () =>
-      Array.from({ length: 14 }, (_, i) => ({
+      Array.from({ length: 8 }, (_, i) => ({
         offset: i * 7.3,
         speed: 1.8 + (i % 4) * 0.34,
         vertical: i % 2 === 0,
@@ -655,10 +655,10 @@ function CityWorld({ map, selected, onTileClick, paused, night }: CitySceneProps
       <directionalLight
         castShadow
         position={[35, 60, 20]}
-        intensity={night ? 0.38 : 2.8}
+        intensity={night ? 0.32 : 2.15}
         color="#fff2d6"
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={512}
+        shadow-mapSize-height={512}
         shadow-camera-left={-72}
         shadow-camera-right={72}
         shadow-camera-top={72}
@@ -673,7 +673,7 @@ function CityWorld({ map, selected, onTileClick, paused, night }: CitySceneProps
         onClick={handleGroundClick}
       >
         <planeGeometry args={[CITY_W * TILE + 20, CITY_H * TILE + 20]} />
-        <meshStandardMaterial color="#66825e" roughness={1} />
+        <meshStandardMaterial color="#718e68" roughness={0.92} />
       </mesh>
 
       <RoadLayer map={map} />
@@ -709,7 +709,7 @@ export function CityScene(props: CitySceneProps) {
   return (
     <Canvas
       shadows
-      dpr={[1, 1.35]}
+      dpr={[0.8, 1]}
       camera={{ position: [64, 56, 64], fov: 48, near: 0.1, far: 520 }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
       onCreated={({ gl }) => {
