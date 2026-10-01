@@ -1,6 +1,6 @@
 <div align="center">
 
-# Fable Cities
+# Skyline City
 
 **A Cities: Skylines–class city builder that runs in a browser tab.**
 
@@ -14,12 +14,12 @@ Three.js, and a team of AI agents that build and critique their own work.
 <img src="https://img.shields.io/badge/assets-CC0%20only-4c9a2a?style=flat-square" alt="CC0 assets">
 <img src="https://img.shields.io/badge/built%20with-Claude%20Code-d97757?style=flat-square" alt="Built with Claude Code">
 <img src="https://img.shields.io/badge/status-in%20development-e0a800?style=flat-square" alt="Status: in development">
-<a href="https://fablecities.rawscollections.com"><img src="https://img.shields.io/badge/▶%20play%20it-live-4c9a2a?style=flat-square" alt="Play it live"></a>
+<a href="https://blank-page-buddy-54.lovable.app"><img src="https://img.shields.io/badge/▶%20play%20it-live-4c9a2a?style=flat-square" alt="Play it live"></a>
 <a href="PROMPT.md"><img src="https://img.shields.io/badge/read-the%20prompt-5b5bd6?style=flat-square" alt="Read the prompt"></a>
 
 <br><br>
 
-<img src="assets/hero.jpg" width="100%" alt="Fable Cities: terrain, forests and a river, with the in-game HUD">
+<img src="assets/hero.jpg" width="100%" alt="Skyline City: terrain, forests and a river, with the in-game HUD">
 
 <sub><i>A generated city on a procedural coastline, rendered live in the browser.</i></sub>
 
@@ -47,7 +47,7 @@ Three.js, and a team of AI agents that build and critique their own work.
 <br>
 
 > [!NOTE]
-> **▶ Play it now: https://fablecities.rawscollections.com**
+> **▶ Play it now: https://blank-page-buddy-54.lovable.app**
 > Desktop recommended, and the first load pulls ~160 MB of textures, so give it a minute.
 >
 > Everything ships at once when the game is finished — engine, modules, assets and the agent tooling.
@@ -211,7 +211,7 @@ Bundled libraries: [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
 ## Disclaimer
 
-Fable Cities is an independent project. It is not affiliated with, endorsed by, sponsored by or
+Skyline City is an independent project. It is not affiliated with, endorsed by, sponsored by or
 connected to Colossal Order Ltd. or Paradox Interactive AB. *Cities: Skylines* is their trademark
 and is referred to in this repository only descriptively, as the visual benchmark the critic agents
 scored against. No code, art, audio or other asset from that game is used, reproduced or included
