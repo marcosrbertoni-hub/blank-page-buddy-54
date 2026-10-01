@@ -348,7 +348,7 @@ function CityGame() {
               <small>COBERTURA</small>
             </div>
             {SERVICE_ORDER.map((kind) => {
-              const key = kind === "power" ? "powerCoverage" :
+              const key: "powerCoverage" | "waterCoverage" | "fireCoverage" | "policeCoverage" | "healthCoverage" | "deathcareCoverage" | "educationCoverage" | "garbageCoverage" = kind === "power" ? "powerCoverage" :
                 kind === "water" ? "waterCoverage" :
                 kind === "fire" ? "fireCoverage" :
                 kind === "police" ? "policeCoverage" :
