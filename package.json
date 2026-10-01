@@ -9,10 +9,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write .",
-    "predev": "node scripts/sync-fable.mjs",
-    "prebuild": "node scripts/sync-fable.mjs",
-    "prebuild:dev": "node scripts/sync-fable.mjs"
+    "format": "prettier --write ."
   },
   "overrides": {
     "rolldown": "1.2.1"
