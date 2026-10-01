@@ -2,8 +2,6 @@ name: Import Skyline City base
 
 on:
   push:
-    paths:
-      - ".github/workflows/import-fable.yml"
   workflow_dispatch:
 
 permissions:
