@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "predev": "node scripts/sync-fable.mjs",
-    "prebuild": "node scripts/sync-fable.mjs"
+    "prebuild": "node scripts/sync-fable.mjs",
+    "prebuild:dev": "node scripts/sync-fable.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
