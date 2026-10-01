@@ -24,7 +24,7 @@ export class Config {
     this.seed = int(p.get('seed'), 1337);
     this.time = float(p.get('time'), 14.0);
     this.cam = p.get('cam') || 'city';
-    this.quality = QUALITY[p.get('quality')] ? p.get('quality') : 'medium';
+    this.quality = QUALITY[p.get('quality')] ? p.get('quality') : 'high';
     this.paused = p.get('paused') === '1';
     this.focus = p.get('focus') ? p.get('focus').split(',').map((s) => s.trim()).filter(Boolean) : null;
     this.weather = p.get('weather') || 'clear';
