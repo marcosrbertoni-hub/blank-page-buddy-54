@@ -390,9 +390,9 @@ function CityGame() {
           </div>
 
           <div className="scene-hud bottom-left">
-            <span>☝ Clique para construir</span>
-            <span>🖱 Arraste para orbitar</span>
-            <span>↕ Scroll para zoom</span>
+            <span>☝ Clique = 1 quadrado</span>
+            <span>🖱 Arraste = vários quadrados</span>
+            <span>↕ Scroll = zoom • botão direito = orbitar</span>
           </div>
 
           {selected !== null && map[selected] && (
