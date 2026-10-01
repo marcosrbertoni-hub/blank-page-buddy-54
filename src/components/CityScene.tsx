@@ -133,7 +133,7 @@ export const createInitialCity = (): CityTile[] => {
         result.push({
           kind: "residential",
           level: 1 + Math.floor(hash(x + 2, y + 4) * 4),
-          people: 40 + Math.floor(hash(x + 8, y + 9) * 100),
+          people: 8 + Math.floor(hash(x + 8, y + 9) * 22),
         });
       } else if (r < 0.84) {
         result.push({
