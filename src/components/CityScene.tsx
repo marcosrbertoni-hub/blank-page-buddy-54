@@ -1,6 +1,5 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { CameraControls, CameraControlsImpl, Outlines, Sky } from "@react-three/drei";
-import { Bloom, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
+import { CameraControls, CameraControlsImpl, Sky } from "@react-three/drei";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
@@ -12,12 +11,24 @@ export type Kind =
   | "industrial"
   | "park"
   | "power"
-  | "water";
+  | "water"
+  | "fire"
+  | "police"
+  | "clinic"
+  | "cemetery"
+  | "school"
+  | "garbage";
 
 export type CityTile = {
   kind: Kind;
   level: number;
   people: number;
+};
+
+export type TaxRates = {
+  residential: number;
+  commercial: number;
+  industrial: number;
 };
 
 export const CITY_W = 28;
@@ -32,6 +43,29 @@ export const TOOL_COST: Record<Exclude<Kind, "empty">, number> = {
   park: 350,
   power: 1200,
   water: 1000,
+  fire: 2400,
+  police: 2600,
+  clinic: 3000,
+  cemetery: 1800,
+  school: 2200,
+  garbage: 2000,
+};
+
+export const cityLabel: Record<Kind, string> = {
+  empty: "Terreno",
+  road: "Estrada",
+  residential: "Residencial",
+  commercial: "Comercial",
+  industrial: "Industrial",
+  park: "Parque",
+  power: "Usina",
+  water: "Água/Esgoto",
+  fire: "Bombeiros",
+  police: "Polícia",
+  clinic: "Clínica",
+  cemetery: "Cemitério",
+  school: "Escola",
+  garbage: "Coleta de lixo",
 };
 
 const ROAD_ROWS = new Set([4, 10, 16]);
@@ -50,11 +84,7 @@ const isRoad = (x: number, y: number) =>
 const nearRoad = (x: number, y: number) =>
   [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]].some(
     ([nx, ny]) =>
-      nx >= 0 &&
-      nx < CITY_W &&
-      ny >= 0 &&
-      ny < CITY_H &&
-      isRoad(nx, ny),
+      nx >= 0 && nx < CITY_W && ny >= 0 && ny < CITY_H && isRoad(nx, ny),
   );
 
 export const createInitialCity = (): CityTile[] => {
@@ -82,15 +112,15 @@ export const createInitialCity = (): CityTile[] => {
       }
 
       const r = hash(x + 10, y + 20);
-      if (r < 0.12) {
+      if (r < 0.14) {
         result.push({ kind: "park", level: 1, people: 0 });
-      } else if (r < 0.58) {
+      } else if (r < 0.6) {
         result.push({
           kind: "residential",
           level: 1 + Math.floor(hash(x + 2, y + 4) * 4),
           people: 40 + Math.floor(hash(x + 8, y + 9) * 100),
         });
-      } else if (r < 0.82) {
+      } else if (r < 0.84) {
         result.push({
           kind: "commercial",
           level: 1 + Math.floor(hash(x + 3, y + 6) * 5),
@@ -106,9 +136,21 @@ export const createInitialCity = (): CityTile[] => {
     }
   }
 
-  result[idx(2, 2)] = { kind: "power", level: 1, people: 0 };
-  result[idx(23, 18)] = { kind: "power", level: 1, people: 0 };
-  result[idx(23, 3)] = { kind: "water", level: 1, people: 0 };
+  const starterServices: Array<[number, number, Kind]> = [
+    [2, 2, "power"],
+    [7, 8, "water"],
+    [9, 12, "fire"],
+    [12, 14, "police"],
+    [15, 8, "clinic"],
+    [17, 12, "cemetery"],
+    [19, 14, "school"],
+    [23, 8, "garbage"],
+  ];
+
+  starterServices.forEach(([x, y, kind]) => {
+    result[idx(x, y)] = { kind, level: 1, people: 0 };
+  });
+
   return result;
 };
 
@@ -130,279 +172,427 @@ const worldPosition = (index: number): [number, number, number] => {
   ];
 };
 
-function Road({ x, y }: { x: number; y: number }) {
-  const horizontal = ROAD_ROWS.has(y) || (y === 13 && x > 7 && x < 22);
-  const vertical = ROAD_COLS.has(x);
-  const intersection = horizontal && vertical;
+const serviceKinds = new Set<Kind>([
+  "power",
+  "water",
+  "fire",
+  "police",
+  "clinic",
+  "cemetery",
+  "school",
+  "garbage",
+]);
 
-  return (
-    <group position={worldPosition(idx(x, y))}>
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}>
-        <planeGeometry args={[TILE, TILE]} />
-        <meshStandardMaterial color="#34383d" roughness={0.88} />
-      </mesh>
-      <mesh position={[0, 0.045, 0]} receiveShadow>
-        <boxGeometry args={[TILE * 0.78, 0.06, TILE * 0.78]} />
-        <meshStandardMaterial color="#2a2e33" roughness={0.9} />
-      </mesh>
+const buildingKinds: Array<"residential" | "commercial" | "industrial"> = [
+  "residential",
+  "commercial",
+  "industrial",
+];
 
-      {!vertical && horizontal && !intersection && (
-        <>
-          <mesh position={[0, 0.09, 0]}>
-            <boxGeometry args={[TILE * 0.07, 0.015, 0.35]} />
-            <meshStandardMaterial color="#f3c84b" emissive="#3b2600" emissiveIntensity={0.25} />
-          </mesh>
-        </>
-      )}
-
-      {vertical && !horizontal && !intersection && (
-        <mesh position={[0, 0.09, 0]}>
-          <boxGeometry args={[0.35, 0.015, TILE * 0.07]} />
-          <meshStandardMaterial color="#f3c84b" emissive="#3b2600" emissiveIntensity={0.25} />
-        </mesh>
-      )}
-
-      {intersection && (
-        <mesh position={[0, 0.09, 0]}>
-          <boxGeometry args={[0.42, 0.018, 0.42]} />
-          <meshStandardMaterial color="#f3c84b" emissive="#3b2600" emissiveIntensity={0.2} />
-        </mesh>
-      )}
-    </group>
-  );
-}
-
-function Windows({
-  width,
-  depth,
-  height,
-  color,
-  warm = false,
-}: {
+type BuildingInstance = {
+  index: number;
+  kind: "residential" | "commercial" | "industrial";
+  position: [number, number, number];
   width: number;
   depth: number;
   height: number;
-  color: string;
-  warm?: boolean;
-}) {
-  const rows = Math.max(2, Math.min(6, Math.floor(height / 2.2)));
-  const nodes = [];
+  seed: number;
+};
 
-  for (let row = 0; row < rows; row += 1) {
-    const yy = 0.85 + row * (height - 1.4) / rows;
-    const lit = row % 3 !== 1;
-    nodes.push(
-      <mesh key={"front-" + row} position={[0, yy, depth / 2 + 0.02]}>
-        <boxGeometry args={[Math.max(0.8, width - 0.55), 0.38, 0.035]} />
-        <meshStandardMaterial
-          color={lit ? (warm ? "#f2d28a" : "#9ed9ef") : color}
-          emissive={lit ? (warm ? "#ffad2e" : "#3d9cc4") : "#000000"}
-          emissiveIntensity={lit ? 0.62 : 0}
-          roughness={0.32}
-        />
-      </mesh>,
-    );
-  }
+function RoadLayer({ map }: { map: CityTile[] }) {
+  const roadRef = useRef<THREE.InstancedMesh>(null);
+  const markRef = useRef<THREE.InstancedMesh>(null);
+  const matrix = useMemo(() => new THREE.Matrix4(), []);
 
-  return <>{nodes}</>;
+  const roads = useMemo(
+    () =>
+      map
+        .map((tile, index) => ({ tile, index }))
+        .filter(({ tile }) => tile.kind === "road"),
+    [map],
+  );
+
+  useEffect(() => {
+    if (!roadRef.current || !markRef.current) return;
+
+    roads.forEach(({ index }, instance) => {
+      const [x, , z] = worldPosition(index);
+      matrix.makeScale(1, 1, 1);
+      matrix.setPosition(x, 0.035, z);
+      roadRef.current!.setMatrixAt(instance, matrix);
+
+      const cx = index % CITY_W;
+      const cy = Math.floor(index / CITY_W);
+      const horizontal = ROAD_ROWS.has(cy) || (cy === 13 && cx > 7 && cx < 22);
+      matrix.makeScale(horizontal ? 0.08 : 0.32, 1, horizontal ? 0.32 : 0.08);
+      matrix.setPosition(x, 0.09, z);
+      markRef.current!.setMatrixAt(instance, matrix);
+    });
+
+    roadRef.current.count = roads.length;
+    markRef.current.count = roads.length;
+    roadRef.current.instanceMatrix.needsUpdate = true;
+    markRef.current.instanceMatrix.needsUpdate = true;
+  }, [roads, matrix]);
+
+  return (
+    <>
+      <instancedMesh ref={roadRef} args={[undefined as never, undefined as never, Math.max(1, roads.length)]} receiveShadow>
+        <boxGeometry args={[TILE * 0.88, 0.08, TILE * 0.88]} />
+        <meshStandardMaterial color="#30343a" roughness={0.9} />
+      </instancedMesh>
+      <instancedMesh ref={markRef} args={[undefined as never, undefined as never, Math.max(1, roads.length)]}>
+        <boxGeometry args={[1, 0.018, 1]} />
+        <meshStandardMaterial color="#e6c34a" emissive="#5c4300" emissiveIntensity={0.15} />
+      </instancedMesh>
+    </>
+  );
 }
 
-function Building({
-  tile,
+function BuildingLayer({
+  map,
+  kind,
+  selected,
+  onTileClick,
+}: {
+  map: CityTile[];
+  kind: "residential" | "commercial" | "industrial";
+  selected: number | null;
+  onTileClick: (index: number) => void;
+}) {
+  const bodyRef = useRef<THREE.InstancedMesh>(null);
+  const roofRef = useRef<THREE.InstancedMesh>(null);
+  const windowRef = useRef<THREE.InstancedMesh>(null);
+  const coneRef = useRef<THREE.InstancedMesh>(null);
+  const matrix = useMemo(() => new THREE.Matrix4(), []);
+  const color = useMemo(() => new THREE.Color(), []);
+
+  const items = useMemo<BuildingInstance[]>(() => {
+    return map.flatMap((tile, index) => {
+      if (tile.kind !== kind) return [];
+      const [x, , z] = worldPosition(index);
+      const seed = Math.abs(Math.sin(x * 12.7 + z * 7.1));
+      const height =
+        kind === "residential"
+          ? 3.4 + tile.level * 1.5 + seed * 2
+          : kind === "commercial"
+            ? 5.5 + tile.level * 2.2 + seed * 4
+            : 2.8 + tile.level * 1.15 + seed * 1.5;
+
+      return [{
+        index,
+        kind,
+        position: [x, 0, z],
+        width: kind === "industrial" ? 3.15 : 2.55 + seed * 0.45,
+        depth: kind === "industrial" ? 2.8 : 2.55 + (1 - seed) * 0.35,
+        height,
+        seed,
+      }];
+    });
+  }, [map, kind]);
+
+  useEffect(() => {
+    if (!bodyRef.current || !roofRef.current || !windowRef.current || !coneRef.current) return;
+
+    items.forEach((item, instance) => {
+      const { position, width, depth, height } = item;
+      matrix.makeScale(width, height, depth);
+      matrix.setPosition(position[0], height / 2, position[2]);
+      bodyRef.current!.setMatrixAt(instance, matrix);
+
+      const selectedNow = selected === item.index;
+      if (kind === "residential") color.set(selectedNow ? "#f0c4a0" : item.seed > 0.55 ? "#d7b78b" : "#a9c4d5");
+      if (kind === "commercial") color.set(selectedNow ? "#75b5d9" : item.seed > 0.5 ? "#3d647d" : "#567f99");
+      if (kind === "industrial") color.set(selectedNow ? "#b29d80" : "#8c7660");
+      bodyRef.current!.setColorAt(instance, color);
+
+      matrix.makeScale(width * 1.03, 1, depth * 1.03);
+      matrix.setPosition(position[0], height + 0.12, position[2]);
+      roofRef.current!.setMatrixAt(instance, matrix);
+
+      if (kind === "residential" || kind === "commercial") {
+        const rows = 2;
+        for (let row = 0; row < rows; row += 1) {
+          const windowInstance = instance * 2 + row;
+          matrix.makeScale(Math.max(0.8, width - 0.55), 1, 1);
+          matrix.setPosition(
+            position[0],
+            1.05 + row * Math.max(1.4, height * 0.42),
+            position[2] + depth / 2 + 0.035,
+          );
+          windowRef.current!.setMatrixAt(windowInstance, matrix);
+          color.set(
+            selectedNow
+              ? "#dff7ff"
+              : kind === "residential"
+                ? row === 0 ? "#f0d48f" : "#9ed9ef"
+                : "#9ed9ef",
+          );
+          windowRef.current!.setColorAt(windowInstance, color);
+        }
+      }
+
+      if (kind === "residential") {
+        matrix.makeScale(width * 0.48, 0.95, width * 0.48);
+        matrix.setPosition(position[0], height + 0.62, position[2]);
+        coneRef.current!.setMatrixAt(instance, matrix);
+      }
+    });
+
+    bodyRef.current.count = items.length;
+    roofRef.current.count = items.length;
+    windowRef.current.count = (kind === "industrial" ? 0 : items.length * 2);
+    coneRef.current.count = kind === "residential" ? items.length : 0;
+
+    bodyRef.current.instanceMatrix.needsUpdate = true;
+    roofRef.current.instanceMatrix.needsUpdate = true;
+    windowRef.current.instanceMatrix.needsUpdate = true;
+    coneRef.current.instanceMatrix.needsUpdate = true;
+    if (bodyRef.current.instanceColor) bodyRef.current.instanceColor.needsUpdate = true;
+    if (windowRef.current.instanceColor) windowRef.current.instanceColor.needsUpdate = true;
+  }, [items, selected, kind, matrix, color]);
+
+  const handleClick = (event: any) => {
+    event.stopPropagation();
+    const id = event.instanceId;
+    if (typeof id === "number" && items[id]) onTileClick(items[id].index);
+  };
+
+  return (
+    <>
+      <instancedMesh
+        ref={bodyRef}
+        args={[undefined as never, undefined as never, Math.max(1, items.length)]}
+        castShadow
+        receiveShadow
+        onClick={handleClick}
+      >
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial roughness={0.72} metalness={0.08} vertexColors />
+      </instancedMesh>
+
+      <instancedMesh ref={roofRef} args={[undefined as never, undefined as never, Math.max(1, items.length)]} castShadow>
+        <boxGeometry args={[1, 0.18, 1]} />
+        <meshStandardMaterial color={kind === "residential" ? "#7b3f3f" : kind === "commercial" ? "#182f45" : "#4f4b45"} roughness={0.82} />
+      </instancedMesh>
+
+      <instancedMesh
+        ref={windowRef}
+        args={[undefined as never, undefined as never, Math.max(1, items.length * 2)]}
+      >
+        <boxGeometry args={[1, 0.38, 0.04]} />
+        <meshStandardMaterial emissive="#3d9cc4" emissiveIntensity={0.55} roughness={0.32} vertexColors />
+      </instancedMesh>
+
+      <instancedMesh
+        ref={coneRef}
+        args={[undefined as never, undefined as never, Math.max(1, items.length)]}
+        castShadow
+      >
+        <coneGeometry args={[1, 1, 4]} />
+        <meshStandardMaterial color="#6f3535" roughness={0.86} />
+      </instancedMesh>
+    </>
+  );
+}
+
+function ParkLayer({ map }: { map: CityTile[] }) {
+  const parkRef = useRef<THREE.InstancedMesh>(null);
+  const trunkRef = useRef<THREE.InstancedMesh>(null);
+  const crownRef = useRef<THREE.InstancedMesh>(null);
+  const matrix = useMemo(() => new THREE.Matrix4(), []);
+
+  const parks = useMemo(
+    () => map.map((tile, index) => ({ tile, index })).filter(({ tile }) => tile.kind === "park"),
+    [map],
+  );
+
+  useEffect(() => {
+    if (!parkRef.current || !trunkRef.current || !crownRef.current) return;
+
+    parks.forEach(({ index }, i) => {
+      const [x, , z] = worldPosition(index);
+      matrix.makeScale(1, 1, 1);
+      matrix.setPosition(x, 0.045, z);
+      parkRef.current!.setMatrixAt(i, matrix);
+
+      const offsets = [[-1.15, -0.85], [1.05, 0.9], [0.95, -0.95]];
+      offsets.forEach(([ox, oz], treeIndex) => {
+        const instance = i * 3 + treeIndex;
+        const s = 0.55 + hash(index + treeIndex, index) * 0.3;
+        matrix.makeScale(s, s, s);
+        matrix.setPosition(x + ox, 0.78 * s, z + oz);
+        trunkRef.current!.setMatrixAt(instance, matrix);
+        matrix.makeScale(s * 0.95, s * 1.25, s * 0.95);
+        matrix.setPosition(x + ox, 1.8 * s, z + oz);
+        crownRef.current!.setMatrixAt(instance, matrix);
+      });
+    });
+
+    parkRef.current.count = parks.length;
+    trunkRef.current.count = parks.length * 3;
+    crownRef.current.count = parks.length * 3;
+    parkRef.current.instanceMatrix.needsUpdate = true;
+    trunkRef.current.instanceMatrix.needsUpdate = true;
+    crownRef.current.instanceMatrix.needsUpdate = true;
+  }, [parks, matrix]);
+
+  return (
+    <>
+      <instancedMesh ref={parkRef} args={[undefined as never, undefined as never, Math.max(1, parks.length)]} receiveShadow>
+        <boxGeometry args={[TILE * 0.9, 0.08, TILE * 0.9]} />
+        <meshStandardMaterial color="#3c9257" roughness={1} />
+      </instancedMesh>
+      <instancedMesh ref={trunkRef} args={[undefined as never, undefined as never, Math.max(1, parks.length * 3)]} castShadow>
+        <cylinderGeometry args={[0.11, 0.16, 1.5, 6]} />
+        <meshStandardMaterial color="#65452f" roughness={1} />
+      </instancedMesh>
+      <instancedMesh ref={crownRef} args={[undefined as never, undefined as never, Math.max(1, parks.length * 3)]} castShadow>
+        <icosahedronGeometry args={[0.9, 0]} />
+        <meshStandardMaterial color="#359454" roughness={0.9} />
+      </instancedMesh>
+    </>
+  );
+}
+
+function ServiceBuilding({
+  kind,
   position,
   selected,
   onClick,
 }: {
-  tile: CityTile;
+  kind: Kind;
   position: [number, number, number];
   selected: boolean;
   onClick: () => void;
 }) {
-  const seed = Math.abs(Math.sin(position[0] * 12.7 + position[2] * 7.1));
-  const level = Math.max(1, tile.level);
-  const baseHeight =
-    tile.kind === "residential"
-      ? 3.4 + level * 1.5 + seed * 2
-      : tile.kind === "commercial"
-        ? 5.5 + level * 2.2 + seed * 4
-        : 2.8 + level * 1.15 + seed * 1.5;
+  const palette: Record<string, string> = {
+    power: "#666a73",
+    water: "#d4e2e8",
+    fire: "#b84b42",
+    police: "#456eaa",
+    clinic: "#e6e8eb",
+    cemetery: "#766a80",
+    school: "#c8a15a",
+    garbage: "#6d765f",
+  };
+  const roof: Record<string, string> = {
+    power: "#c3c5c8",
+    water: "#78aabf",
+    fire: "#7e2524",
+    police: "#263e69",
+    clinic: "#b5c1cb",
+    cemetery: "#3e3949",
+    school: "#805f3a",
+    garbage: "#444c3e",
+  };
 
-  const width = tile.kind === "industrial" ? 3.1 : 2.55 + seed * 0.45;
-  const depth = tile.kind === "industrial" ? 2.8 : 2.55 + (1 - seed) * 0.35;
-
-  const color =
-    tile.kind === "residential"
-      ? seed > 0.55
-        ? "#d7b78b"
-        : "#a9c4d5"
-      : tile.kind === "commercial"
-        ? seed > 0.5
-          ? "#3d647d"
-          : "#567f99"
-        : "#8c7660";
-
-  const roofColor =
-    tile.kind === "residential"
-      ? "#7b3f3f"
-      : tile.kind === "commercial"
-        ? "#182f45"
-        : "#4f4b45";
+  const height = kind === "power" ? 4.5 : kind === "water" ? 4 : 2.5;
+  const width = kind === "power" ? 2.8 : 2.65;
 
   return (
-    <group position={position} onClick={(e) => { e.stopPropagation(); onClick(); }}>
-      <mesh castShadow receiveShadow position={[0, baseHeight / 2, 0]}>
-        <boxGeometry args={[width, baseHeight, depth]} />
-        <meshStandardMaterial color={color} roughness={0.72} metalness={0.08} />
-        {selected && <Outlines thickness={0.09} color="#72d7ff" screenspace />}
-      </mesh>
-
-      {tile.kind !== "industrial" && (
-        <>
-          <Windows width={width} depth={depth} height={baseHeight} color={color} warm={tile.kind === "residential"} />
-          <mesh castShadow position={[0, baseHeight + 0.12, 0]}>
-            <boxGeometry args={[width * 1.03, 0.18, depth * 1.03]} />
-            <meshStandardMaterial color={roofColor} roughness={0.8} />
-          </mesh>
-          {tile.kind === "residential" && (
-            <mesh castShadow position={[0, baseHeight + 0.62, 0]}>
-              <coneGeometry args={[width * 0.48, 0.95, 4]} />
-              <meshStandardMaterial color="#6f3535" roughness={0.86} />
-            </mesh>
-          )}
-        </>
-      )}
-
-      {tile.kind === "industrial" && (
-        <>
-          <mesh castShadow position={[0, baseHeight + 0.22, 0]}>
-            <boxGeometry args={[width * 0.92, 0.35, depth * 0.92]} />
-            <meshStandardMaterial color="#5d6267" metalness={0.45} roughness={0.55} />
-          </mesh>
-          <mesh castShadow position={[width * 0.25, baseHeight + 1.25, -depth * 0.12]}>
-            <cylinderGeometry args={[0.22, 0.3, 2.3, 12]} />
-            <meshStandardMaterial color="#6b7075" metalness={0.65} roughness={0.4} />
-          </mesh>
-        </>
-      )}
-
-      {tile.people > 0 && (
-        <mesh position={[0, baseHeight + 0.12, 0]}>
-          <boxGeometry args={[0.55, 0.035, 0.55]} />
-          <meshStandardMaterial color="#6ee7b7" emissive="#2b8c68" emissiveIntensity={0.45} />
-        </mesh>
-      )}
-    </group>
-  );
-}
-
-function Tree({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
-  return (
-    <group position={position} scale={scale}>
-      <mesh castShadow position={[0, 0.75, 0]}>
-        <cylinderGeometry args={[0.11, 0.16, 1.5, 8]} />
-        <meshStandardMaterial color="#65452f" roughness={1} />
-      </mesh>
-      <mesh castShadow position={[0, 1.8, 0]}>
-        <icosahedronGeometry args={[0.9, 1]} />
-        <meshStandardMaterial color="#2f8b54" roughness={0.9} />
-      </mesh>
-      <mesh castShadow position={[0.25, 2.25, 0.05]} scale={0.72}>
-        <icosahedronGeometry args={[0.7, 1]} />
-        <meshStandardMaterial color="#43a861" roughness={0.88} />
-      </mesh>
-    </group>
-  );
-}
-
-function Park({ position, seed }: { position: [number, number, number]; seed: number }) {
-  return (
-    <group position={position}>
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
-        <planeGeometry args={[TILE * 0.92, TILE * 0.92]} />
-        <meshStandardMaterial color="#3c9257" roughness={1} />
-      </mesh>
-      <mesh receiveShadow position={[0, 0.08, 0]}>
-        <boxGeometry args={[1.25, 0.08, 2.7]} />
-        <meshStandardMaterial color="#cdbf92" roughness={1} />
-      </mesh>
-      <Tree position={[-1.15, 0, -0.85]} scale={0.68 + seed * 0.2} />
-      <Tree position={[1.05, 0, 0.9]} scale={0.6 + seed * 0.22} />
-      <Tree position={[0.95, 0, -0.95]} scale={0.5 + seed * 0.2} />
-    </group>
-  );
-}
-
-function WaterTile({ position, x, y }: { position: [number, number, number]; x: number; y: number }) {
-  const ref = useRef<THREE.Mesh>(null);
-
-  useFrame(({ clock }) => {
-    if (ref.current) {
-      ref.current.position.y = 0.045 + Math.sin(clock.elapsedTime * 0.9 + x * 0.8 + y) * 0.025;
-    }
-  });
-
-  return (
-    <group position={position}>
-      <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[TILE, TILE, 2, 2]} />
+    <group
+      position={position}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+    >
+      <mesh castShadow receiveShadow position={[0, height / 2, 0]}>
+        <boxGeometry args={[width, height, 2.35]} />
         <meshStandardMaterial
-          color="#287ca4"
-          metalness={0.35}
-          roughness={0.12}
-          transparent
-          opacity={0.92}
+          color={selected ? "#f0c85b" : palette[kind] ?? "#88909a"}
+          roughness={0.58}
+          metalness={kind === "power" ? 0.28 : 0.05}
         />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.09, 0]}>
-        <planeGeometry args={[TILE * 0.8, 0.08]} />
-        <meshStandardMaterial color="#a6e7f7" emissive="#4ba9c5" emissiveIntensity={0.35} transparent opacity={0.55} />
+      <mesh castShadow position={[0, height + 0.18, 0]}>
+        <boxGeometry args={[width * 1.04, 0.32, 2.45]} />
+        <meshStandardMaterial color={roof[kind] ?? "#555"} roughness={0.72} />
       </mesh>
+      {kind === "fire" && (
+        <mesh castShadow position={[0, height + 1.1, 0]}>
+          <cylinderGeometry args={[0.2, 0.25, 2, 10]} />
+          <meshStandardMaterial color="#d8d8d8" metalness={0.35} roughness={0.45} />
+        </mesh>
+      )}
+      {kind === "police" && (
+        <mesh position={[0, height + 0.48, 0]}>
+          <boxGeometry args={[0.6, 0.12, 0.18]} />
+          <meshStandardMaterial color="#5db9ff" emissive="#1878c9" emissiveIntensity={2} />
+        </mesh>
+      )}
+      {kind === "clinic" && (
+        <mesh position={[0, height + 0.5, 0]}>
+          <boxGeometry args={[0.7, 0.16, 0.16]} />
+          <meshStandardMaterial color="#e34c4c" emissive="#a51f1f" emissiveIntensity={1.2} />
+        </mesh>
+      )}
+      {kind === "cemetery" && (
+        <mesh position={[0, 0.18, 0]}>
+          <boxGeometry args={[1.6, 0.12, 1.6]} />
+          <meshStandardMaterial color="#b9b0a1" roughness={1} />
+        </mesh>
+      )}
     </group>
   );
 }
 
-function Landmark({ position, type }: { position: [number, number, number]; type: "power" | "water" }) {
-  if (type === "water") {
-    return (
-      <group position={position}>
-        <mesh castShadow position={[0, 2.4, 0]}>
-          <cylinderGeometry args={[1.05, 1.25, 4.8, 24]} />
-          <meshStandardMaterial color="#d6e1e6" roughness={0.38} metalness={0.3} />
-        </mesh>
-        <mesh castShadow position={[0, 4.9, 0]}>
-          <cylinderGeometry args={[1.25, 0.95, 0.45, 24]} />
-          <meshStandardMaterial color="#78aabf" roughness={0.45} metalness={0.2} />
-        </mesh>
-      </group>
-    );
-  }
-
+function ServiceLayer({
+  map,
+  selected,
+  onTileClick,
+}: {
+  map: CityTile[];
+  selected: number | null;
+  onTileClick: (index: number) => void;
+}) {
   return (
-    <group position={position}>
-      <mesh castShadow position={[0, 2, 0]}>
-        <boxGeometry args={[2.7, 4, 2.7]} />
-        <meshStandardMaterial color="#696b72" roughness={0.62} metalness={0.25} />
-      </mesh>
-      <mesh castShadow position={[0, 4.65, 0]}>
-        <cylinderGeometry args={[0.85, 0.55, 1.3, 18]} />
-        <meshStandardMaterial color="#c3c5c8" roughness={0.5} metalness={0.35} />
-      </mesh>
-      <mesh position={[0, 5.38, 0]}>
-        <sphereGeometry args={[0.16, 12, 12]} />
-        <meshStandardMaterial color="#ffbf47" emissive="#ff8a00" emissiveIntensity={3} />
-      </mesh>
-    </group>
+    <>
+      {map.map((tile, index) => {
+        if (!serviceKinds.has(tile.kind)) return null;
+        return (
+          <ServiceBuilding
+            key={index}
+            kind={tile.kind}
+            position={worldPosition(index)}
+            selected={selected === index}
+            onClick={() => onTileClick(index)}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+function Water({ onTileClick }: { onTileClick: (index: number) => void }) {
+  const waterX = (CITY_W - 1 - 1) * TILE / 2;
+  return (
+    <mesh
+      position={[waterX, 0.025, 0]}
+      rotation={[-Math.PI / 2, 0, 0]}
+      receiveShadow
+      onClick={(e) => {
+        e.stopPropagation();
+        const x = Math.max(0, Math.min(CITY_W - 1, Math.floor((e.point.x + ((CITY_W - 1) * TILE) / 2) / TILE)));
+        const y = Math.max(0, Math.min(CITY_H - 1, Math.floor((e.point.z + ((CITY_H - 1) * TILE) / 2) / TILE)));
+        onTileClick(y * CITY_W + x);
+      }}
+    >
+      <planeGeometry args={[TILE * 3, CITY_H * TILE + 18]} />
+      <meshStandardMaterial color="#287ca4" metalness={0.28} roughness={0.16} transparent opacity={0.94} />
+    </mesh>
   );
 }
 
 function Cars({ paused }: { paused: boolean }) {
   const cars = useMemo(
     () =>
-      Array.from({ length: 18 }, (_, i) => ({
-        lane: i % 3,
-        offset: i * 8.7,
-        speed: 2.1 + (i % 4) * 0.38,
+      Array.from({ length: 14 }, (_, i) => ({
+        offset: i * 7.3,
+        speed: 1.8 + (i % 4) * 0.34,
         vertical: i % 2 === 0,
+        lane: i % 3,
       })),
     [],
   );
@@ -417,130 +607,106 @@ function Cars({ paused }: { paused: boolean }) {
 }
 
 function MovingCar({
-  lane,
   offset,
   speed,
   vertical,
+  lane,
   paused,
 }: {
-  lane: number;
   offset: number;
   speed: number;
   vertical: boolean;
+  lane: number;
   paused: boolean;
 }) {
   const ref = useRef<THREE.Group>(null);
 
-  useFrame((_, delta) => {
+  useFrame(({ clock }) => {
     if (!ref.current || paused) return;
-    const t = (offset + performance.now() * 0.001 * speed * 5) % 96;
+    const t = (offset + clock.elapsedTime * speed * 5) % 112;
     if (vertical) {
-      const x = [-34, -2, 30][lane] ?? -34;
-      ref.current.position.set(x, 0.23, -40 + t);
+      const x = [-32, 0, 28][lane] ?? -32;
+      ref.current.position.set(x, 0.24, -42 + t);
       ref.current.rotation.y = Math.PI / 2;
     } else {
       const z = [-24, 0, 24][lane] ?? -24;
-      ref.current.position.set(-54 + t, 0.23, z);
+      ref.current.position.set(-56 + t, 0.24, z);
       ref.current.rotation.y = 0;
     }
-    ref.current.position.y += delta * 0;
   });
 
   return (
     <group ref={ref}>
-      <mesh castShadow>
+      <mesh>
         <boxGeometry args={[0.72, 0.34, 1.35]} />
         <meshStandardMaterial color={["#e85d5d", "#4e9eea", "#f2c84b", "#f1f1f1"][lane % 4]} roughness={0.5} />
       </mesh>
       <mesh position={[0, 0.11, 0.12]}>
         <boxGeometry args={[0.48, 0.15, 0.5]} />
-        <meshStandardMaterial color="#9ed7e7" metalness={0.25} roughness={0.18} />
-      </mesh>
-      <mesh position={[0, 0.02, 0.68]}>
-        <boxGeometry args={[0.42, 0.05, 0.035]} />
-        <meshStandardMaterial color="#f8e6a4" emissive="#ffca54" emissiveIntensity={1.5} />
+        <meshStandardMaterial color="#9ed7e7" roughness={0.18} />
       </mesh>
     </group>
   );
 }
 
-function CityWorld({
-  map,
-  selected,
-  onTileClick,
-  paused,
-  night,
-}: CitySceneProps & { night: boolean }) {
-  const tiles = useMemo(() => {
-    return map.map((tile, i) => {
-      const x = i % CITY_W;
-      const y = Math.floor(i / CITY_W);
-      const position = worldPosition(i);
-      const seed = hash(x, y);
-      return { tile, i, x, y, position, seed };
-    });
-  }, [map]);
+function CityWorld({ map, selected, onTileClick, paused, night }: CitySceneProps) {
+  const handleGroundClick = (event: any) => {
+    event.stopPropagation();
+    const x = Math.max(0, Math.min(CITY_W - 1, Math.floor((event.point.x + ((CITY_W - 1) * TILE) / 2) / TILE)));
+    const y = Math.max(0, Math.min(CITY_H - 1, Math.floor((event.point.z + ((CITY_H - 1) * TILE) / 2) / TILE)));
+    onTileClick(y * CITY_W + x);
+  };
 
   return (
     <>
-      <>{night ? <color attach="background" args={["#050916"]} /> : <Sky distance={450000} sunPosition={[80, 55, 45]} turbidity={7} rayleigh={1.3} mieCoefficient={0.006} mieDirectionalG={0.8} />}</>
-      <ambientLight intensity={night ? 0.22 : 0.65} />
-      <hemisphereLight args={night ? ["#17274a", "#10180f", 0.3] : ["#c7e6ff", "#34513a", 0.9]} />
+      {night ? (
+        <color attach="background" args={["#06101e"]} />
+      ) : (
+        <Sky distance={450000} sunPosition={[80, 55, 45]} turbidity={7} rayleigh={1.1} mieCoefficient={0.006} mieDirectionalG={0.8} />
+      )}
+
+      <fog attach="fog" args={[night ? "#06101e" : "#a9c3d4", 95, 260]} />
+      <ambientLight intensity={night ? 0.24 : 0.72} />
+      <hemisphereLight args={night ? ["#1d3155", "#10160f", 0.28] : ["#c7e6ff", "#34513a", 0.85]} />
       <directionalLight
         castShadow
         position={[35, 60, 20]}
-        intensity={night ? 0.35 : 3.4}
-        color="#fff4dc"
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-left={-70}
-        shadow-camera-right={70}
-        shadow-camera-top={70}
-        shadow-camera-bottom={-70}
-        shadow-bias={-0.00035}
+        intensity={night ? 0.38 : 2.8}
+        color="#fff2d6"
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-left={-72}
+        shadow-camera-right={72}
+        shadow-camera-top={72}
+        shadow-camera-bottom={-72}
+        shadow-bias={-0.00025}
       />
 
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, -0.03, 0]}>
-        <planeGeometry args={[CITY_W * TILE + 18, CITY_H * TILE + 18]} />
-        <meshStandardMaterial color="#6a875f" roughness={1} />
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, -0.04, 0]}
+        receiveShadow
+        onClick={handleGroundClick}
+      >
+        <planeGeometry args={[CITY_W * TILE + 20, CITY_H * TILE + 20]} />
+        <meshStandardMaterial color="#66825e" roughness={1} />
       </mesh>
 
-      <group>
-        {tiles.map(({ tile, i, x, y, position, seed }) => (
-          <group key={i}>
-            {tile.kind === "road" && <Road x={x} y={y} />}
-            {tile.kind === "residential" && (
-              <Building tile={tile} position={position} selected={selected === i} onClick={() => onTileClick(i)} />
-            )}
-            {tile.kind === "commercial" && (
-              <Building tile={tile} position={position} selected={selected === i} onClick={() => onTileClick(i)} />
-            )}
-            {tile.kind === "industrial" && (
-              <Building tile={tile} position={position} selected={selected === i} onClick={() => onTileClick(i)} />
-            )}
-            {tile.kind === "park" && <Park position={position} seed={seed} />}
-            {tile.kind === "power" && <Landmark position={position} type="power" />}
-            {tile.kind === "water" && <WaterTile position={position} x={x} y={y} />}
+      <RoadLayer map={map} />
+      <ParkLayer map={map} />
 
-            {tile.kind === "empty" && seed > 0.83 && (
-              <Tree position={[position[0] + (seed - 0.5) * 1.2, 0, position[2] + (seed - 0.5) * 1.2]} scale={0.52 + seed * 0.22} />
-            )}
+      {buildingKinds.map((kind) => (
+        <BuildingLayer
+          key={kind}
+          map={map}
+          kind={kind}
+          selected={selected}
+          onTileClick={onTileClick}
+        />
+      ))}
 
-            <mesh
-              position={[position[0], 0.18, position[2]]}
-              rotation={[-Math.PI / 2, 0, 0]}
-              onClick={(e) => {
-                e.stopPropagation();
-                onTileClick(i);
-              }}
-            >
-              <planeGeometry args={[TILE * 0.96, TILE * 0.96]} />
-              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-            </mesh>
-          </group>
-        ))}
-      </group>
-
+      <ServiceLayer map={map} selected={selected} onTileClick={onTileClick} />
+      <Water onTileClick={onTileClick} />
       <Cars paused={paused} />
     </>
   );
@@ -551,7 +717,7 @@ export function CityScene(props: CitySceneProps) {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      controls.current?.setLookAt(64, 54, 64, 0, 0, 0, true);
+      controls.current?.setLookAt(64, 56, 64, 0, 0, 0, true);
     }, 40);
     return () => window.clearTimeout(timer);
   }, []);
@@ -559,44 +725,26 @@ export function CityScene(props: CitySceneProps) {
   return (
     <Canvas
       shadows
-      dpr={[1, 1.75]}
-      camera={{ position: [64, 54, 64], fov: 48, near: 0.1, far: 700 }}
+      dpr={[1, 1.35]}
+      camera={{ position: [64, 56, 64], fov: 48, near: 0.1, far: 520 }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.15;
+        gl.toneMappingExposure = 1.08;
         gl.outputColorSpace = THREE.SRGBColorSpace;
       }}
     >
       <CameraControls
         ref={controls}
         makeDefault
-        smoothTime={0.18}
-        draggingSmoothTime={0.12}
+        smoothTime={0.16}
+        draggingSmoothTime={0.1}
         minDistance={24}
         maxDistance={155}
         minPolarAngle={0.3}
-        maxPolarAngle={Math.PI / 2.15}
+        maxPolarAngle={Math.PI / 2.18}
       />
-
-      <CityWorld {...props} night={props.night} />
-
-      <EffectComposer multisampling={4}>
-        <Bloom luminanceThreshold={0.72} luminanceSmoothing={0.35} intensity={0.45} mipmapBlur />
-        <Noise opacity={0.018} />
-        <Vignette eskil={false} offset={0.16} darkness={0.72} />
-      </EffectComposer>
+      <CityWorld {...props} />
     </Canvas>
   );
 }
-
-export const cityLabel: Record<Kind, string> = {
-  empty: "Terreno",
-  road: "Estrada",
-  residential: "Residencial",
-  commercial: "Comercial",
-  industrial: "Industrial",
-  park: "Parque",
-  power: "Usina",
-  water: "Água",
-};
