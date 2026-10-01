@@ -1,19 +1,27 @@
-
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  Activity,
+  Banknote,
   Building2,
+  Cross,
+  Droplets,
   Factory,
+  Flame,
+  GraduationCap,
+  HeartPulse,
   Home,
   Landmark,
+  Moon,
   Pause,
   Play,
   RotateCcw,
   Save,
+  Shield,
+  Sun,
   Trash2,
   Trees,
-  Droplets,
-  Sun,
-  Moon,
+  WalletCards,
+  Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
@@ -25,25 +33,61 @@ import {
   createInitialCity,
   type CityTile,
   type Kind,
+  type TaxRates,
 } from "../components/CityScene";
+import {
+  SERVICE_CONFIG,
+  calculateCityMetrics,
+  simulateMonth,
+  type ServiceKind,
+} from "../components/citySimulation";
 
-const BUILD_TOOLS: Array<{ kind: Exclude<Kind, "empty">; icon: ReactNode }> = [
-  { kind: "road", icon: <Landmark size={18} /> },
-  { kind: "residential", icon: <Home size={18} /> },
-  { kind: "commercial", icon: <Building2 size={18} /> },
-  { kind: "industrial", icon: <Factory size={18} /> },
-  { kind: "park", icon: <Trees size={18} /> },
-  { kind: "power", icon: <Sun size={18} /> },
-  { kind: "water", icon: <Droplets size={18} /> },
+type ToolItem = {
+  kind: Exclude<Kind, "empty">;
+  icon: ReactNode;
+  group: "construção" | "serviço";
+};
+
+const BUILD_TOOLS: ToolItem[] = [
+  { kind: "road", icon: <Landmark size={18} />, group: "construção" },
+  { kind: "residential", icon: <Home size={18} />, group: "construção" },
+  { kind: "commercial", icon: <Building2 size={18} />, group: "construção" },
+  { kind: "industrial", icon: <Factory size={18} />, group: "construção" },
+  { kind: "park", icon: <Trees size={18} />, group: "construção" },
+  { kind: "power", icon: <Zap size={18} />, group: "serviço" },
+  { kind: "water", icon: <Droplets size={18} />, group: "serviço" },
+  { kind: "fire", icon: <Flame size={18} />, group: "serviço" },
+  { kind: "police", icon: <Shield size={18} />, group: "serviço" },
+  { kind: "clinic", icon: <HeartPulse size={18} />, group: "serviço" },
+  { kind: "cemetery", icon: <Cross size={18} />, group: "serviço" },
+  { kind: "school", icon: <GraduationCap size={18} />, group: "serviço" },
+  { kind: "garbage", icon: <Trash2 size={18} />, group: "serviço" },
 ];
+
+const SERVICE_ORDER: ServiceKind[] = [
+  "fire",
+  "police",
+  "clinic",
+  "cemetery",
+  "school",
+  "garbage",
+  "power",
+  "water",
+];
+
+const isZone = (kind: Kind) =>
+  kind === "residential" || kind === "commercial" || kind === "industrial";
+
+const isService = (kind: Kind): kind is ServiceKind =>
+  SERVICE_ORDER.includes(kind as ServiceKind);
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Egregoria Web — 3D City Builder" },
+      { title: "Egregoria Web — City Simulator 3D" },
       {
         name: "description",
-        content: "City builder 3D inspirado em grandes simuladores urbanos, rodando no navegador.",
+        content: "Simulador de cidade 3D com economia, impostos, serviços públicos e crescimento urbano.",
       },
     ],
   }),
@@ -61,122 +105,83 @@ function CityGame() {
   const [selected, setSelected] = useState<number | null>(null);
   const [night, setNight] = useState(false);
   const [notice, setNotice] = useState("Sua cidade está pronta para crescer.");
+  const [taxes, setTaxes] = useState<TaxRates>({
+    residential: 9,
+    commercial: 9,
+    industrial: 9,
+  });
 
-  const stats = useMemo(() => {
-    const count = (kind: Kind) => map.filter((tile) => tile.kind === kind).length;
-    const population = map.reduce((sum, tile) => sum + tile.people, 0);
-    return {
-      roads: count("road"),
-      residential: count("residential"),
-      commercial: count("commercial"),
-      industrial: count("industrial"),
-      parks: count("park"),
-      power: count("power"),
-      water: count("water"),
-      population,
-      jobs: count("commercial") * 16 + count("industrial") * 22,
-    };
-  }, [map]);
+  const metrics = useMemo(() => calculateCityMetrics(map, taxes), [map, taxes]);
 
   useEffect(() => {
     if (paused) return;
 
     const timer = window.setInterval(() => {
-      setMonth((value) => value + 1);
       setMap((current) => {
-        const next = current.map((tile) => ({ ...tile }));
-        let gained = 0;
-
-        next.forEach((tile, index) => {
-          if (tile.kind !== "residential") return;
-
-          const x = index % CITY_W;
-          const y = Math.floor(index / CITY_W);
-          const roadNearby = [
-            [x - 1, y],
-            [x + 1, y],
-            [x, y - 1],
-            [x, y + 1],
-          ].some(
-            ([nx, ny]) =>
-              nx >= 0 &&
-              nx < CITY_W &&
-              ny >= 0 &&
-              ny < CITY_H &&
-              next[ny * CITY_W + nx]?.kind === "road",
-          );
-
-          if (roadNearby && stats.jobs > 0 && tile.people < 180) {
-            const growth = Math.min(12, 2 + Math.floor(tile.level * 1.5));
-            tile.people += growth;
-            tile.level = Math.min(6, tile.level + (tile.people > tile.level * 55 ? 1 : 0));
-            gained += growth;
-          }
-        });
-
-        if (gained > 0) {
-          setNotice("A cidade cresceu +" + gained + " habitantes neste mês.");
-        }
-
-        const revenue =
-          stats.commercial * 48 +
-          stats.industrial * 62 +
-          stats.residential * 12;
-        const upkeep =
-          stats.roads * 3 +
-          stats.parks * 7 +
-          stats.power * 28 +
-          stats.water * 18;
-
-        setMoney((value) => Math.max(0, value + revenue - upkeep));
-        setHappiness((value) =>
-          Math.max(
-            25,
-            Math.min(
-              98,
-              Math.round(
-                value * 0.86 +
-                  (58 + stats.parks * 2.4 + stats.water * 1.2 - stats.industrial * 0.12) * 0.14,
-              ),
-            ),
-          ),
+        const result = simulateMonth(current, taxes);
+        setMonth((value) => value + 1);
+        setMoney((value) => Math.max(0, value + result.cashflow));
+        setHappiness(result.happiness);
+        setNotice(
+          result.event +
+            (result.growth > 0 ? ` +${result.growth} habitantes.` : "") +
+            (result.deaths > 0 ? ` ${result.deaths} perdas.` : ""),
         );
-
-        return next;
+        return result.map;
       });
     }, 4500 / speed);
 
     return () => window.clearInterval(timer);
-  }, [paused, speed, stats]);
+  }, [paused, speed, taxes]);
+
+  const counts = useMemo(() => {
+    const result = {} as Record<Kind, number>;
+    for (const kind of Object.keys(cityLabel) as Kind[]) result[kind] = 0;
+    map.forEach((tile) => {
+      result[tile.kind] += 1;
+    });
+    return result;
+  }, [map]);
 
   const onTileClick = (index: number) => {
     const current = map[index];
     if (!current) return;
 
-    if (tool === "empty") return;
-
     if (current.kind !== "empty") {
       setSelected(index);
-      setNotice(cityLabel[current.kind] + " selecionado. Use Demolir para remover.");
+      setNotice(`${cityLabel[current.kind]} selecionado. Use Demolir para remover.`);
       return;
     }
 
-    const cost = TOOL_COST[tool];
-    if (!cost) return;
-
-    if (money < cost) {
+    if (money < TOOL_COST[tool]) {
       setNotice("Orçamento insuficiente para essa construção.");
       return;
     }
 
-    setMoney((value) => value - cost);
+    const x = index % CITY_W;
+    const y = Math.floor(index / CITY_W);
+    const roadNearby = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]].some(
+      ([nx, ny]) =>
+        nx >= 0 &&
+        nx < CITY_W &&
+        ny >= 0 &&
+        ny < CITY_H &&
+        map[ny * CITY_W + nx]?.kind === "road",
+    );
+
+    if (tool !== "road" && tool !== "park" && !roadNearby) {
+      setNotice("Conecte essa área a uma estrada antes de construir aqui.");
+      return;
+    }
+
+    setMoney((value) => value - TOOL_COST[tool]);
     setMap((currentMap) =>
       currentMap.map((tile, i) =>
         i === index ? { kind: tool, level: 1, people: 0 } : tile,
       ),
     );
     setSelected(index);
-    setNotice(cityLabel[tool] + " construído.");
+    setNotice(`${cityLabel[tool]} construído por $${TOOL_COST[tool].toLocaleString("pt-BR")}.`);
   };
 
   const demolish = () => {
@@ -186,12 +191,9 @@ function CityGame() {
     }
 
     const current = map[selected];
-    if (!current || current.kind === "empty") return;
+    if (!current || current.kind === "empty" || current.kind === "water") return;
 
-    const refund =
-      current.kind === "water"
-        ? 0
-        : Math.floor((TOOL_COST[current.kind] ?? 0) * 0.25);
+    const refund = Math.floor((TOOL_COST[current.kind] ?? 0) * 0.25);
 
     setMap((currentMap) =>
       currentMap.map((tile, i) =>
@@ -199,12 +201,7 @@ function CityGame() {
       ),
     );
     setMoney((value) => value + refund);
-    setNotice(
-      cityLabel[current.kind] +
-        " demolido. Reembolso: $" +
-        refund.toLocaleString("pt-BR") +
-        ".",
-    );
+    setNotice(`${cityLabel[current.kind]} demolido. Reembolso: $${refund.toLocaleString("pt-BR")}.`);
     setSelected(null);
   };
 
@@ -215,19 +212,20 @@ function CityGame() {
     setMonth(1);
     setSelected(null);
     setPaused(false);
+    setTaxes({ residential: 9, commercial: 9, industrial: 9 });
     setNotice("Nova cidade criada.");
   };
 
   const saveCity = () => {
     localStorage.setItem(
-      "egregoria-web-city-v2",
-      JSON.stringify({ map, money, happiness, month }),
+      "egregoria-web-city-v3",
+      JSON.stringify({ map, money, happiness, month, taxes }),
     );
     setNotice("Cidade salva neste navegador.");
   };
 
   const loadCity = () => {
-    const raw = localStorage.getItem("egregoria-web-city-v2");
+    const raw = localStorage.getItem("egregoria-web-city-v3");
     if (!raw) {
       setNotice("Nenhuma cidade salva encontrada.");
       return;
@@ -239,6 +237,7 @@ function CityGame() {
         money: number;
         happiness: number;
         month: number;
+        taxes: TaxRates;
       };
       if (!Array.isArray(saved.map) || saved.map.length !== CITY_W * CITY_H) {
         throw new Error("save inválido");
@@ -247,6 +246,7 @@ function CityGame() {
       setMoney(saved.money);
       setHappiness(saved.happiness);
       setMonth(saved.month);
+      setTaxes(saved.taxes ?? { residential: 9, commercial: 9, industrial: 9 });
       setNotice("Cidade carregada.");
     } catch {
       setNotice("O salvamento está inválido.");
@@ -265,10 +265,10 @@ function CityGame() {
         </div>
 
         <div className="skyline-stats">
-          <Stat label="ORÇAMENTO" value={"$" + money.toLocaleString("pt-BR")} />
-          <Stat label="POPULAÇÃO" value={stats.population.toLocaleString("pt-BR")} />
+          <Stat label="CAIXA" value={"$" + money.toLocaleString("pt-BR")} />
+          <Stat label="POPULAÇÃO" value={metrics.population.toLocaleString("pt-BR")} />
           <Stat label="FELICIDADE" value={happiness + "%"} />
-          <Stat label="EMPREGOS" value={stats.jobs.toLocaleString("pt-BR")} />
+          <Stat label="RENDA / MÊS" value={"$" + metrics.netIncome.toLocaleString("pt-BR")} />
           <Stat label="MÊS" value={String(month)} />
         </div>
 
@@ -301,26 +301,17 @@ function CityGame() {
             <small>3D</small>
           </div>
 
+          <div className="tool-section-label">INFRAESTRUTURA E ZONAS</div>
           <div className="tool-list">
-            {BUILD_TOOLS.map(({ kind, icon }) => (
-              <button
-                key={kind}
-                className={tool === kind ? "build-tool active" : "build-tool"}
-                onClick={() => setTool(kind)}
-              >
-                <span className="tool-icon">{icon}</span>
-                <span className="tool-copy">
-                  <b>{cityLabel[kind]}</b>
-                  <small>
-                    {kind === "road"
-                      ? "Infraestrutura"
-                      : kind === "park"
-                        ? "Qualidade de vida"
-                        : "Zona urbana"}
-                  </small>
-                </span>
-                <strong>{"$" + TOOL_COST[kind].toLocaleString("pt-BR")}</strong>
-              </button>
+            {BUILD_TOOLS.filter((toolItem) => toolItem.group === "construção").map(({ kind, icon }) => (
+              <ToolButton key={kind} kind={kind} icon={icon} active={tool === kind} onClick={() => setTool(kind)} />
+            ))}
+          </div>
+
+          <div className="tool-section-label service-heading">SERVIÇOS PÚBLICOS</div>
+          <div className="tool-list">
+            {BUILD_TOOLS.filter((toolItem) => toolItem.group === "serviço").map(({ kind, icon }) => (
+              <ToolButton key={kind} kind={kind} icon={icon} active={tool === kind} onClick={() => setTool(kind)} />
             ))}
           </div>
 
@@ -329,18 +320,64 @@ function CityGame() {
             <span>Demolir selecionado</span>
           </button>
 
+          <div className="management-panel">
+            <div className="panel-title">
+              <span>IMPOSTOS</span>
+              <small>5–20%</small>
+            </div>
+            <TaxRow
+              label="Residencial"
+              value={taxes.residential}
+              onChange={(value) => setTaxes((current) => ({ ...current, residential: value }))}
+            />
+            <TaxRow
+              label="Comercial"
+              value={taxes.commercial}
+              onChange={(value) => setTaxes((current) => ({ ...current, commercial: value }))}
+            />
+            <TaxRow
+              label="Industrial"
+              value={taxes.industrial}
+              onChange={(value) => setTaxes((current) => ({ ...current, industrial: value }))}
+            />
+          </div>
+
+          <div className="management-panel">
+            <div className="panel-title">
+              <span>SERVIÇOS</span>
+              <small>COBERTURA</small>
+            </div>
+            {SERVICE_ORDER.map((kind) => {
+              const key = kind === "power" ? "powerCoverage" :
+                kind === "water" ? "waterCoverage" :
+                kind === "fire" ? "fireCoverage" :
+                kind === "police" ? "policeCoverage" :
+                kind === "clinic" ? "healthCoverage" :
+                kind === "cemetery" ? "deathcareCoverage" :
+                kind === "school" ? "educationCoverage" :
+                "garbageCoverage";
+              const value = metrics[key];
+              return (
+                <ServiceMeter
+                  key={kind}
+                  label={SERVICE_CONFIG[kind].label}
+                  value={value}
+                />
+              );
+            })}
+          </div>
+
           <div className="city-overview">
             <div className="panel-title">
-              <span>VISÃO DA CIDADE</span>
+              <span>INDICADORES</span>
               <small>{paused ? "PAUSADA" : "AO VIVO"}</small>
             </div>
-            <OverviewRow label="Estradas" value={stats.roads} />
-            <OverviewRow label="Residencial" value={stats.residential} />
-            <OverviewRow label="Comercial" value={stats.commercial} />
-            <OverviewRow label="Industrial" value={stats.industrial} />
-            <OverviewRow label="Parques" value={stats.parks} />
-            <OverviewRow label="Água" value={stats.water} />
-            <OverviewRow label="Energia" value={stats.power} />
+            <OverviewRow label="Emprego" value={metrics.employmentRate} suffix="%" />
+            <OverviewRow label="Saúde" value={metrics.health} suffix="%" />
+            <OverviewRow label="Educação" value={metrics.education} suffix="%" />
+            <OverviewRow label="Criminalidade" value={metrics.crime} suffix="%" />
+            <OverviewRow label="Risco de incêndio" value={metrics.fireRisk} suffix="%" />
+            <OverviewRow label="Lixo coletado" value={metrics.garbage} suffix="%" />
           </div>
 
           <div className="city-tip">
@@ -377,8 +414,9 @@ function CityGame() {
               </div>
               <div className="selected-metrics">
                 <span>Nível <b>{map[selected].level}</b></span>
-                {map[selected].people > 0 && (
-                  <span>Habitantes <b>{map[selected].people}</b></span>
+                {map[selected].people > 0 && <span>Habitantes <b>{map[selected].people}</b></span>}
+                {isService(map[selected].kind) && (
+                  <span>Manutenção <b>{"$" + SERVICE_CONFIG[map[selected].kind].upkeep}</b>/mês</span>
                 )}
               </div>
               <button onClick={demolish}><Trash2 size={16} /></button>
@@ -386,9 +424,38 @@ function CityGame() {
           )}
 
           <div className="scene-brand">EGREGORIA WEB <span>•</span> 3D</div>
+
+          <div className="world-demand">
+            <div><Home size={13} /> R <b>{metrics.demandResidential}</b></div>
+            <div><Building2 size={13} /> C <b>{metrics.demandCommercial}</b></div>
+            <div><Factory size={13} /> I <b>{metrics.demandIndustrial}</b></div>
+          </div>
         </div>
       </section>
     </main>
+  );
+}
+
+function ToolButton({
+  kind,
+  icon,
+  active,
+  onClick,
+}: {
+  kind: Exclude<Kind, "empty">;
+  icon: ReactNode;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button className={active ? "build-tool active" : "build-tool"} onClick={onClick}>
+      <span className="tool-icon">{icon}</span>
+      <span className="tool-copy">
+        <b>{cityLabel[kind]}</b>
+        <small>{isZone(kind) ? "Zona urbana" : kind === "road" ? "Infraestrutura" : "Serviço público"}</small>
+      </span>
+      <strong>{"$" + TOOL_COST[kind].toLocaleString("pt-BR")}</strong>
+    </button>
   );
 }
 
@@ -401,11 +468,58 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function OverviewRow({ label, value }: { label: string; value: number }) {
+function TaxRow({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="tax-row">
+      <span>{label}</span>
+      <input
+        type="range"
+        min="5"
+        max="20"
+        step="1"
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+      <b>{value}%</b>
+    </label>
+  );
+}
+
+function ServiceMeter({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="service-meter">
+      <div>
+        <span>{label}</span>
+        <b>{value}%</b>
+      </div>
+      <div className="meter-track">
+        <span style={{ width: `${value}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function OverviewRow({
+  label,
+  value,
+  suffix = "",
+}: {
+  label: string;
+  value: number;
+  suffix?: string;
+}) {
   return (
     <div className="overview-row">
       <span>{label}</span>
-      <b>{value.toLocaleString("pt-BR")}</b>
+      <b>{value.toLocaleString("pt-BR")}{suffix}</b>
     </div>
   );
 }
