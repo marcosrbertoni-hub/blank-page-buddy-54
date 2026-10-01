@@ -8,6 +8,7 @@ import { AssetLoader } from './core/AssetLoader.js';
 import { installDebugAPI } from './core/DebugAPI.js';
 import { MODULES } from './modules/registry.js';
 import { makeRng } from './shared/random.js';
+import { installPortuguese } from './i18n/pt-BR.js';
 
 const loadingBar = document.getElementById('loading-bar');
 const loadingStatus = document.getElementById('loading-status');
@@ -20,6 +21,7 @@ const setLoading = (fraction, text) => {
 };
 
 async function boot() {
+  installPortuguese();
   const canvas = document.getElementById('game');
   const config = new Config();
   const events = new EventBus();
@@ -79,14 +81,22 @@ async function boot() {
     }
   }
 
-  // --- load modules in order ---
+  // --- preload module chunks in parallel, then initialise in dependency order ---
+  // The old boot path created a network waterfall: terrain -> roads -> zoning -> ... .
+  // Downloads now happen in parallel; initialisation order and rendering quality are unchanged.
   const list = [...MODULES].sort((a, b) => a.order - b.order).filter((m) => !config.focus || config.focus.includes(m.name));
+  setLoading(0.04, 'Preparando sistemas da cidade');
+  const preloaded = new Map();
+  await Promise.all(list.map(async (entry) => {
+    try { preloaded.set(entry.name, await entry.load()); }
+    catch (err) { preloaded.set(entry.name, Promise.reject(err)); }
+  }));
   let i = 0;
   for (const entry of list) {
     setLoading((i / (list.length + 1)) * 0.9, `Loading ${entry.name}`);
     const t0 = performance.now();
     try {
-      const mod = await entry.load();
+      const mod = await preloaded.get(entry.name);
       ctx.modules[entry.name] = mod;
       if (typeof mod.init === 'function') await mod.init(ctx);
       if (typeof mod.update === 'function') {
