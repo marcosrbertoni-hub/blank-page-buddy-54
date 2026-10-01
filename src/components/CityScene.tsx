@@ -117,6 +117,7 @@ type CitySceneProps = {
   selected: number | null;
   onTileClick: (index: number) => void;
   paused: boolean;
+  night: boolean;
 };
 
 const worldPosition = (index: number): [number, number, number] => {
@@ -184,30 +185,23 @@ function Windows({
   color: string;
   warm?: boolean;
 }) {
-  const rows = Math.max(2, Math.floor(height / 1.5));
-  const cols = Math.max(2, Math.floor(width / 0.75));
+  const rows = Math.max(2, Math.min(6, Math.floor(height / 2.2)));
   const nodes = [];
 
   for (let row = 0; row < rows; row += 1) {
-    const yy = 0.7 + row * (height - 1.1) / rows;
-    for (let col = 0; col < cols; col += 1) {
-      const xx = -width / 2 + 0.45 + col * Math.max(0.5, (width - 0.8) / cols);
-      const lit = (row * 7 + col * 11) % 5 !== 0;
-      nodes.push(
-        <mesh
-          key={`${row}-f-${col}`}
-          position={[xx, yy, depth / 2 + 0.018]}
-        >
-          <boxGeometry args={[0.22, 0.34, 0.035]} />
-          <meshStandardMaterial
-            color={lit ? (warm ? "#f6d98b" : "#b9e6ff") : color}
-            emissive={lit ? (warm ? "#ffb52e" : "#5bb8ff") : "#000000"}
-            emissiveIntensity={lit ? 0.75 : 0}
-            roughness={0.35}
-          />
-        </mesh>,
-      );
-    }
+    const yy = 0.85 + row * (height - 1.4) / rows;
+    const lit = row % 3 !== 1;
+    nodes.push(
+      <mesh key={"front-" + row} position={[0, yy, depth / 2 + 0.02]}>
+        <boxGeometry args={[Math.max(0.8, width - 0.55), 0.38, 0.035]} />
+        <meshStandardMaterial
+          color={lit ? (warm ? "#f2d28a" : "#9ed9ef") : color}
+          emissive={lit ? (warm ? "#ffad2e" : "#3d9cc4") : "#000000"}
+          emissiveIntensity={lit ? 0.62 : 0}
+          roughness={0.32}
+        />
+      </mesh>,
+    );
   }
 
   return <>{nodes}</>;
@@ -475,7 +469,8 @@ function CityWorld({
   selected,
   onTileClick,
   paused,
-}: CitySceneProps) {
+  night,
+}: CitySceneProps & { night: boolean }) {
   const tiles = useMemo(() => {
     return map.map((tile, i) => {
       const x = i % CITY_W;
@@ -488,13 +483,13 @@ function CityWorld({
 
   return (
     <>
-      <Sky distance={450000} sunPosition={[80, 55, 45]} turbidity={7} rayleigh={1.3} mieCoefficient={0.006} mieDirectionalG={0.8} />
-      <ambientLight intensity={0.65} />
-      <hemisphereLight args={["#c7e6ff", "#34513a", 0.9]} />
+      <>{night ? <color attach="background" args={["#050916"]} /> : <Sky distance={450000} sunPosition={[80, 55, 45]} turbidity={7} rayleigh={1.3} mieCoefficient={0.006} mieDirectionalG={0.8} />}</>
+      <ambientLight intensity={night ? 0.22 : 0.65} />
+      <hemisphereLight args={night ? ["#17274a", "#10180f", 0.3] : ["#c7e6ff", "#34513a", 0.9]} />
       <directionalLight
         castShadow
         position={[35, 60, 20]}
-        intensity={3.4}
+        intensity={night ? 0.35 : 3.4}
         color="#fff4dc"
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
@@ -584,7 +579,7 @@ export function CityScene(props: CitySceneProps) {
         maxPolarAngle={Math.PI / 2.15}
       />
 
-      <CityWorld {...props} />
+      <CityWorld {...props} night={props.night} />
 
       <EffectComposer multisampling={4}>
         <Bloom luminanceThreshold={0.72} luminanceSmoothing={0.35} intensity={0.45} mipmapBlur />
