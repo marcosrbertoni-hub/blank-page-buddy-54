@@ -19,7 +19,7 @@ export const SERVICE_CONFIG: Record<ServiceKind, {
   fire: { label: "Bombeiros", capacity: 950, upkeep: 55, coverage: 5 },
   police: { label: "Polícia", capacity: 1100, upkeep: 55, coverage: 5 },
   clinic: { label: "Saúde", capacity: 1400, upkeep: 65, coverage: 4 },
-  cemetery: { label: "Cemitério", capacity: 900, upkeep: 45, coverage: 4 },
+  cemetery: { label: "Cemitério", capacity: 2200, upkeep: 25, coverage: 4 },
   school: { label: "Escola", capacity: 500, upkeep: 35, coverage: 4 },
   garbage: { label: "Coleta", capacity: 2300, upkeep: 45, coverage: 5 },
   power: { label: "Energia", capacity: 3000, upkeep: 70, coverage: 7 },
@@ -96,12 +96,12 @@ export function calculateCityMetrics(map: CityTile[], taxes: TaxRates): CityMetr
   const sewageNeed = Math.round(waterNeed * 0.9);
   const powerCoverage = powerNeed === 0 ? 100 : pct((electricityCapacity / powerNeed) * 100);
   const waterCoverage = waterNeed === 0 ? 100 : pct((waterCapacity / waterNeed) * 100);
-  const sewageCapacity = countKind(map, "water") * 850;
+  const sewageCapacity = countKind(map, "water") * 2500;
   const sewage = sewageNeed === 0 ? 100 : pct((sewageCapacity / sewageNeed) * 100);
 
   const taxRevenue = Math.round(
-    population * (taxes.residential / 100) * 1.55 +
-    jobs * ((taxes.commercial + taxes.industrial) / 200) * 2.35,
+    population * (taxes.residential / 100) * 2.15 +
+    jobs * ((taxes.commercial + taxes.industrial) / 200) * 3.4,
   );
 
   const serviceUpkeep =
