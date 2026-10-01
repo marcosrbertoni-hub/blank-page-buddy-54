@@ -162,7 +162,7 @@ type BuildingInstance = {
   seed: number;
 };
 
-function RoadLayer({ map }: { map: CityTile[] }) {
+function RoadLayer({ map, onTileClick }: { map: CityTile[]; onTileClick: (index: number) => void }) {
   const roadRef = useRef<THREE.InstancedMesh>(null);
   const markRef = useRef<THREE.InstancedMesh>(null);
   const matrix = useMemo(() => new THREE.Matrix4(), []);
@@ -200,7 +200,16 @@ function RoadLayer({ map }: { map: CityTile[] }) {
 
   return (
     <>
-      <instancedMesh ref={roadRef} args={[ROAD_GEOMETRY, ROAD_MATERIAL, Math.max(1, roads.length)]} receiveShadow>
+      <instancedMesh
+        ref={roadRef}
+        args={[ROAD_GEOMETRY, ROAD_MATERIAL, Math.max(1, roads.length)]}
+        receiveShadow
+        onPointerDown={(event: any) => {
+          event.stopPropagation();
+          const road = typeof event.instanceId === "number" ? roads[event.instanceId] : undefined;
+          if (road) onTileClick(road.index);
+        }}
+      >
 
       </instancedMesh>
       <instancedMesh ref={markRef} args={[MARK_GEOMETRY, MARK_MATERIAL, Math.max(1, roads.length)]}>
@@ -383,7 +392,7 @@ function BuildingLayer({
   );
 }
 
-function ParkLayer({ map }: { map: CityTile[] }) {
+function ParkLayer({ map, onTileClick }: { map: CityTile[]; onTileClick: (index: number) => void }) {
   const parkRef = useRef<THREE.InstancedMesh>(null);
   const trunkRef = useRef<THREE.InstancedMesh>(null);
   const crownRef = useRef<THREE.InstancedMesh>(null);
@@ -426,7 +435,16 @@ function ParkLayer({ map }: { map: CityTile[] }) {
 
   return (
     <>
-      <instancedMesh ref={parkRef} args={[PARK_GEOMETRY, PARK_MATERIAL, Math.max(1, parks.length)]} receiveShadow>
+      <instancedMesh
+        ref={parkRef}
+        args={[PARK_GEOMETRY, PARK_MATERIAL, Math.max(1, parks.length)]}
+        receiveShadow
+        onPointerDown={(event: any) => {
+          event.stopPropagation();
+          const park = typeof event.instanceId === "number" ? parks[event.instanceId] : undefined;
+          if (park) onTileClick(park.index);
+        }}
+      >
 
       </instancedMesh>
       <instancedMesh ref={trunkRef} args={[TRUNK_GEOMETRY, TRUNK_MATERIAL, Math.max(1, parks.length * 3)]} castShadow>
@@ -477,7 +495,7 @@ function ServiceBuilding({
   return (
     <group
       position={position}
-      onClick={(e) => {
+      onPointerDown={(e) => {
         e.stopPropagation();
         onClick();
       }}
@@ -717,8 +735,8 @@ function CityWorld({ map, selected, onTileClick, paused, night, onPaintingChange
         </mesh>
       )}
 
-      <RoadLayer map={map} />
-      <ParkLayer map={map} />
+      <RoadLayer map={map} onTileClick={onTileClick} />
+      <ParkLayer map={map} onTileClick={onTileClick} />
 
       {buildingKinds.map((kind) => (
         <BuildingLayer key={kind} map={map} kind={kind} selected={selected} onTileClick={onTileClick} />
