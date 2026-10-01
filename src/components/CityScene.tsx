@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { CameraControls, Outlines, Sky } from "@react-three/drei";
+import { CameraControls, CameraControlsImpl, Outlines, Sky } from "@react-three/drei";
 import { Bloom, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -441,11 +441,11 @@ function MovingCar({
     if (!ref.current || paused) return;
     const t = (offset + performance.now() * 0.001 * speed * 5) % 96;
     if (vertical) {
-      const x = [-16, 16, 48][lane] ?? -16;
-      ref.current.position.set(x, 0.23, -44 + t);
+      const x = [-34, -2, 30][lane] ?? -34;
+      ref.current.position.set(x, 0.23, -40 + t);
       ref.current.rotation.y = Math.PI / 2;
     } else {
-      const z = [-20, 4, 28][lane] ?? -20;
+      const z = [-24, 0, 24][lane] ?? -24;
       ref.current.position.set(-54 + t, 0.23, z);
       ref.current.rotation.y = 0;
     }
@@ -532,7 +532,7 @@ function CityWorld({
             )}
 
             <mesh
-              position={[position[0], 0.025, position[2]]}
+              position={[position[0], 0.18, position[2]]}
               rotation={[-Math.PI / 2, 0, 0]}
               onClick={(e) => {
                 e.stopPropagation();
