@@ -77,7 +77,7 @@ export class World {
       taxRate: { residential: 0.1, commercial: 0.1, industrial: 0.1, office: 0.1 },
       happiness: 0.72,
       demand: { residential: 0.6, commercial: 0.35, industrial: 0.4, office: 0.2 },
-      cityName: 'New Fable',
+      cityName: 'New Skyline',
     };
 
     /** Environment state — written by the environment module, read by everyone. */

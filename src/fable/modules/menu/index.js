@@ -162,7 +162,7 @@ export function showStartScreen(ctx, opts = {}) {
   const choose = (mode) => {
     if (!root || root.dataset.phase !== 'choose') return;
     const seed = clampSeed(parseInt(els.seedInput.value, 10));
-    const cityName = (els.nameInput.value || els.nameInput.placeholder || 'New Fable').trim().slice(0, 28);
+    const cityName = (els.nameInput.value || els.nameInput.placeholder || 'New Skyline').trim().slice(0, 28);
     world.time.paused = wasPaused;
     if (preview) { setTimeout(hide, 60); }
     else { enterLoading(mode, seed, cityName); watchCoreProgress(events); }
@@ -396,7 +396,7 @@ function markup(seed, suggested, cityName, quality) {
     <div class="fm-left">
       <div class="fm-brand">
         <div class="fm-kicker"><i></i>A city builder in your browser</div>
-        <h1 class="fm-title" id="fm-title"><span>Fable</span><span>Cities</span></h1>
+        <h1 class="fm-title" id="fm-title"><span>Skyline</span><span>City</span></h1>
         <p class="fm-tag" id="fm-tag">Draw one road across empty land, and a city grows along it — traffic, districts, skyline and all.</p>
       </div>
 
@@ -474,7 +474,7 @@ function markup(seed, suggested, cityName, quality) {
 
       <div class="fm-load" id="fm-load">
         <div class="fm-load__eyebrow">Building your world</div>
-        <div class="fm-load__name" id="fm-load-name">New Fable</div>
+        <div class="fm-load__name" id="fm-load-name">New Skyline</div>
         <div class="fm-load__meta" id="fm-load-meta"></div>
         <div class="fm-bar"><i id="fm-bar"></i></div>
         <div class="fm-status" role="status" aria-live="polite">

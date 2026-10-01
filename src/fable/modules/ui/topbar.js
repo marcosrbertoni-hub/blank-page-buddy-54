@@ -32,7 +32,7 @@ export function createTopBar(hud) {
   const perAdj = () => ({ week: 'Weekly', month: 'Monthly', day: 'Daily', year: 'Yearly' })[per()] || 'Monthly';
 
   // ---------- left: brand ----------
-  const cityName = h('div.fc-brand-city', { contenteditable: 'true', spellcheck: 'false', role: 'textbox', 'aria-label': 'City name' }, eco.cityName || 'New Fable');
+  const cityName = h('div.fc-brand-city', { contenteditable: 'true', spellcheck: 'false', role: 'textbox', 'aria-label': 'City name' }, eco.cityName || 'New Skyline');
   cityName.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); cityName.blur(); }
     if (e.key === 'Escape') { cityName.textContent = eco.cityName; cityName.blur(); }

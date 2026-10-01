@@ -101,7 +101,7 @@ export class ServiceVisuals {
       const roller = makeRollerDoor('#b4b8bb', 7);
       const garbage = makeGarbage(hashString('landfill'));
       const hedgeT = makeHedge(hashString('hedge'));
-      const cityName = (world.economy.cityName || 'New Fable').toUpperCase();
+      const cityName = (world.economy.cityName || 'New Skyline').toUpperCase();
       const SIGNS = {
         sign_police: { text: 'POLICE', bg: '#1f3d7a', fg: '#ffffff', w: 7.5, h: 1.15, icon: 'shield' },
         sign_fire: { text: 'FIRE STATION', sub: 'ENGINE COMPANY No. 3', bg: '#b3261e', fg: '#ffffff', w: 10, h: 1.15, icon: 'flame' },

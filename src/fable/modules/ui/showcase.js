@@ -80,7 +80,7 @@ export async function showcase(ctx) {
     events.emit('economy:changed', eco);
     staged.push('statistics');
   }
-  if (!eco.cityName || eco.cityName === 'New Fable') { eco.cityName = 'Port Fable'; events.emit('city:renamed', eco.cityName); }
+  if (!eco.cityName || eco.cityName === 'New Skyline') { eco.cityName = 'Port Skyline'; events.emit('city:renamed', eco.cityName); }
   api.refresh();
 
   // ---- simulation running at 1× so the clock animates ----

@@ -117,7 +117,7 @@ export function createSimHud(ctx, api, opts = {}) {
   const render = () => {
     const e = world.economy;
     const t = world.time;
-    $('.name').textContent = e.cityName || 'New Fable';
+    $('.name').textContent = e.cityName || 'New Skyline';
     $('.date').textContent = api.formatTime();
     el.querySelectorAll('.speed i').forEach((i, k) => i.classList.toggle('on', k < t.speed));
     if (el.classList.contains('collapsed')) return;
