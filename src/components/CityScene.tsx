@@ -105,66 +105,20 @@ const nearRoad = (x: number, y: number) =>
 export const createInitialCity = (): CityTile[] => {
   const result: CityTile[] = [];
 
+  // A new game starts as undeveloped land.
+  // Only a small starter access road and the waterfront remain;
+  // the player must build the city from scratch.
   for (let y = 0; y < CITY_H; y += 1) {
     for (let x = 0; x < CITY_W; x += 1) {
       if (x >= CITY_W - 3) {
         result.push({ kind: "water", level: 1, people: 0 });
-        continue;
-      }
-
-      if (isRoad(x, y)) {
+      } else if (y === Math.floor(CITY_H / 2) && x < 9) {
         result.push({ kind: "road", level: 1, people: 0 });
-        continue;
-      }
-
-      if (!nearRoad(x, y)) {
-        result.push({
-          kind: hash(x, y) > 0.55 ? "park" : "empty",
-          level: 1,
-          people: 0,
-        });
-        continue;
-      }
-
-      const r = hash(x + 10, y + 20);
-      if (r < 0.14) {
-        result.push({ kind: "park", level: 1, people: 0 });
-      } else if (r < 0.6) {
-        result.push({
-          kind: "residential",
-          level: 1 + Math.floor(hash(x + 2, y + 4) * 4),
-          people: 8 + Math.floor(hash(x + 8, y + 9) * 22),
-        });
-      } else if (r < 0.84) {
-        result.push({
-          kind: "commercial",
-          level: 1 + Math.floor(hash(x + 3, y + 6) * 5),
-          people: 0,
-        });
       } else {
-        result.push({
-          kind: "industrial",
-          level: 1 + Math.floor(hash(x + 5, y + 8) * 3),
-          people: 0,
-        });
+        result.push({ kind: "empty", level: 0, people: 0 });
       }
     }
   }
-
-  const starterServices: Array<[number, number, Kind]> = [
-    [2, 2, "power"],
-    [7, 8, "water"],
-    [9, 12, "fire"],
-    [12, 14, "police"],
-    [15, 8, "clinic"],
-    [17, 12, "cemetery"],
-    [19, 14, "school"],
-    [23, 8, "garbage"],
-  ];
-
-  starterServices.forEach(([x, y, kind]) => {
-    result[idx(x, y)] = { kind, level: 1, people: 0 };
-  });
 
   return result;
 };
