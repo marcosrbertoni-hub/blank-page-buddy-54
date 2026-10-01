@@ -1,7 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  Activity,
-  Banknote,
   Building2,
   Cross,
   Droplets,
@@ -20,7 +18,6 @@ import {
   Sun,
   Trash2,
   Trees,
-  WalletCards,
   Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -133,15 +130,6 @@ function CityGame() {
 
     return () => window.clearInterval(timer);
   }, [paused, speed, taxes]);
-
-  const counts = useMemo(() => {
-    const result = {} as Record<Kind, number>;
-    for (const kind of Object.keys(cityLabel) as Kind[]) result[kind] = 0;
-    map.forEach((tile) => {
-      result[tile.kind] += 1;
-    });
-    return result;
-  }, [map]);
 
   const onTileClick = (index: number) => {
     const current = map[index];
