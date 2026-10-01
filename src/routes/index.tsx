@@ -81,7 +81,7 @@ const isService = (kind: Kind): kind is ServiceKind =>
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Egregoria Web — City Simulator 3D" },
+      { title: "Skyline City Web — City Simulator 3D" },
       {
         name: "description",
         content: "Simulador de cidade 3D com economia, impostos, serviços públicos e crescimento urbano.",
@@ -206,14 +206,14 @@ function CityGame() {
 
   const saveCity = () => {
     localStorage.setItem(
-      "egregoria-web-city-v3",
+      "skyline-city-save-v1",
       JSON.stringify({ map, money, happiness, month, taxes }),
     );
     setNotice("Cidade salva neste navegador.");
   };
 
   const loadCity = () => {
-    const raw = localStorage.getItem("egregoria-web-city-v3");
+    const raw = localStorage.getItem("skyline-city-save-v1");
     if (!raw) {
       setNotice("Nenhuma cidade salva encontrada.");
       return;
@@ -247,7 +247,7 @@ function CityGame() {
         <div className="skyline-brand">
           <div className="skyline-logo">🏙️</div>
           <div>
-            <strong>EGREGORIA</strong>
+            <strong>SKYLINE CITY</strong>
             <span>3D CITY SIMULATOR</span>
           </div>
         </div>
@@ -411,7 +411,7 @@ function CityGame() {
             </div>
           )}
 
-          <div className="scene-brand">EGREGORIA WEB <span>•</span> 3D</div>
+          <div className="scene-brand">SKYLINE CITY WEB <span>•</span> 3D</div>
 
           <div className="world-demand">
             <div><Home size={13} /> R <b>{metrics.demandResidential}</b></div>
