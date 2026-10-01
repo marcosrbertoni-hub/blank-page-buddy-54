@@ -153,6 +153,8 @@ function CityGame() {
     const current = map[index];
     if (!current) return;
 
+    if (tool === "empty") return;
+
     if (current.kind !== "empty") {
       setSelected(index);
       setNotice(cityLabel[current.kind] + " selecionado. Use Demolir para remover.");
@@ -353,6 +355,7 @@ function CityGame() {
             selected={selected}
             onTileClick={onTileClick}
             paused={paused}
+            night={night}
           />
 
           <div className="scene-hud top-left">
