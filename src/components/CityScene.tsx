@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { CameraControls, CameraControlsImpl, Sky } from "@react-three/drei";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 export type Kind =
@@ -104,22 +104,15 @@ const nearRoad = (x: number, y: number) =>
 
 export const createInitialCity = (): CityTile[] => {
   const result: CityTile[] = [];
-
-  // A new game starts as undeveloped land.
-  // Only a small starter access road and the waterfront remain;
-  // the player must build the city from scratch.
   for (let y = 0; y < CITY_H; y += 1) {
     for (let x = 0; x < CITY_W; x += 1) {
-      if (x >= CITY_W - 3) {
-        result.push({ kind: "water", level: 1, people: 0 });
-      } else if (y === Math.floor(CITY_H / 2) && x < 9) {
-        result.push({ kind: "road", level: 1, people: 0 });
-      } else {
-        result.push({ kind: "empty", level: 0, people: 0 });
-      }
+      result.push(
+        x >= CITY_W - 3
+          ? { kind: "water", level: 1, people: 0 }
+          : { kind: "empty", level: 0, people: 0 },
+      );
     }
   }
-
   return result;
 };
 
@@ -128,6 +121,7 @@ type CitySceneProps = {
   selected: number | null;
   onTileClick: (index: number) => void;
   paused: boolean;
+  onPaintingChange?: (painting: boolean) => void;
   night: boolean;
 };
 
@@ -639,12 +633,44 @@ function MovingCar({
   );
 }
 
-function CityWorld({ map, selected, onTileClick, paused, night }: CitySceneProps) {
-  const handleGroundClick = (event: any) => {
+function CityWorld({ map, selected, onTileClick, paused, night, onPaintingChange }: CitySceneProps) {
+  const [hovered, setHovered] = useState<number | null>(null);
+  const paintingRef = useRef(false);
+  const paintedRef = useRef(new Set<number>());
+
+  const indexFromPoint = (point: THREE.Vector3) => {
+    const x = Math.max(0, Math.min(CITY_W - 1, Math.floor((point.x + ((CITY_W - 1) * TILE) / 2) / TILE)));
+    const y = Math.max(0, Math.min(CITY_H - 1, Math.floor((point.z + ((CITY_H - 1) * TILE) / 2) / TILE)));
+    return y * CITY_W + x;
+  };
+
+  const paintAt = (point: THREE.Vector3) => {
+    const index = indexFromPoint(point);
+    setHovered(index);
+    if (paintingRef.current && !paintedRef.current.has(index)) {
+      paintedRef.current.add(index);
+      onTileClick(index);
+    }
+  };
+
+  const startPainting = (event: any) => {
     event.stopPropagation();
-    const x = Math.max(0, Math.min(CITY_W - 1, Math.floor((event.point.x + ((CITY_W - 1) * TILE) / 2) / TILE)));
-    const y = Math.max(0, Math.min(CITY_H - 1, Math.floor((event.point.z + ((CITY_H - 1) * TILE) / 2) / TILE)));
-    onTileClick(y * CITY_W + x);
+    paintingRef.current = true;
+    paintedRef.current.clear();
+    onPaintingChange?.(true);
+    paintAt(event.point);
+  };
+
+  const movePainting = (event: any) => {
+    if (!paintingRef.current) return;
+    paintAt(event.point);
+  };
+
+  const finishPainting = () => {
+    if (!paintingRef.current) return;
+    paintingRef.current = false;
+    paintedRef.current.clear();
+    onPaintingChange?.(false);
   };
 
   return (
@@ -656,43 +682,46 @@ function CityWorld({ map, selected, onTileClick, paused, night }: CitySceneProps
       )}
 
       <fog attach="fog" args={[night ? "#06101e" : "#a9c3d4", 95, 260]} />
-      <ambientLight intensity={night ? 0.24 : 0.72} />
+      <ambientLight intensity={night ? 0.24 : 0.78} />
       <hemisphereLight args={night ? ["#1d3155", "#10160f", 0.28] : ["#c7e6ff", "#34513a", 0.85]} />
       <directionalLight
-        castShadow
         position={[35, 60, 20]}
-        intensity={night ? 0.32 : 2.15}
+        intensity={night ? 0.32 : 2.0}
         color="#fff2d6"
-        shadow-mapSize-width={512}
-        shadow-mapSize-height={512}
-        shadow-camera-left={-72}
-        shadow-camera-right={72}
-        shadow-camera-top={72}
-        shadow-camera-bottom={-72}
-        shadow-bias={-0.00025}
       />
 
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, -0.04, 0]}
         receiveShadow
-        onClick={handleGroundClick}
+        onPointerDown={startPainting}
+        onPointerMove={movePainting}
+        onPointerUp={finishPainting}
+        onPointerLeave={() => {
+          if (!paintingRef.current) setHovered(null);
+        }}
       >
         <planeGeometry args={[CITY_W * TILE + 20, CITY_H * TILE + 20]} />
         <meshStandardMaterial color="#718e68" roughness={0.92} />
       </mesh>
 
+      <gridHelper
+        args={[CITY_W * TILE, CITY_W, "#6b8064", "#7d9475"]}
+        position={[0, 0.012, 0]}
+      />
+
+      {hovered !== null && (
+        <mesh position={[worldPosition(hovered)[0], 0.045, worldPosition(hovered)[2]]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[TILE * 0.9, TILE * 0.9]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.16} depthWrite={false} />
+        </mesh>
+      )}
+
       <RoadLayer map={map} />
       <ParkLayer map={map} />
 
       {buildingKinds.map((kind) => (
-        <BuildingLayer
-          key={kind}
-          map={map}
-          kind={kind}
-          selected={selected}
-          onTileClick={onTileClick}
-        />
+        <BuildingLayer key={kind} map={map} kind={kind} selected={selected} onTileClick={onTileClick} />
       ))}
 
       <ServiceLayer map={map} selected={selected} onTileClick={onTileClick} />
@@ -703,6 +732,7 @@ function CityWorld({ map, selected, onTileClick, paused, night }: CitySceneProps
 }
 
 export function CityScene(props: CitySceneProps) {
+  const [painting, setPainting] = useState(false);
   const controls = useRef<CameraControlsImpl | null>(null);
 
   useEffect(() => {
@@ -714,8 +744,7 @@ export function CityScene(props: CitySceneProps) {
 
   return (
     <Canvas
-      shadows
-      dpr={[0.8, 1]}
+      dpr={[0.7, 0.9]}
       camera={{ position: [50, 43, 50], fov: 45, near: 0.1, far: 520 }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
       onCreated={({ gl }) => {
@@ -726,6 +755,7 @@ export function CityScene(props: CitySceneProps) {
     >
       <CameraControls
         ref={controls}
+        enabled={!painting}
         makeDefault
         smoothTime={0.16}
         draggingSmoothTime={0.1}
@@ -734,7 +764,7 @@ export function CityScene(props: CitySceneProps) {
         minPolarAngle={0.3}
         maxPolarAngle={Math.PI / 2.18}
       />
-      <CityWorld {...props} />
+      <CityWorld {...props} onPaintingChange={setPainting} />
     </Canvas>
   );
 }
