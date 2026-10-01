@@ -157,11 +157,9 @@ function CityGame() {
         map[ny * CITY_W + nx]?.kind === "road",
     );
 
-    if (tool !== "road" && tool !== "park" && !roadNearby) {
-      setNotice("Conecte essa área a uma estrada antes de construir aqui.");
-      return;
-    }
-
+    // Construction is deliberately permissive in the browser version:
+    // roads can be added later and the simulation will reward connected growth.
+    // This keeps placing buildings fast and frustration-free.
     setMoney((value) => value - TOOL_COST[tool]);
     setMap((currentMap) =>
       currentMap.map((tile, i) =>
