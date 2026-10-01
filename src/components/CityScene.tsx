@@ -255,7 +255,7 @@ function RoadLayer({ map }: { map: CityTile[] }) {
       <instancedMesh ref={roadRef} args={[ROAD_GEOMETRY, ROAD_MATERIAL, Math.max(1, roads.length)]} receiveShadow>
 
       </instancedMesh>
-      <instancedMesh ref={markRef} args={[ROAD_GEOMETRY, ROAD_MATERIAL, Math.max(1, roads.length)]}>
+      <instancedMesh ref={markRef} args={[MARK_GEOMETRY, MARK_MATERIAL, Math.max(1, roads.length)]}>
 
       </instancedMesh>
     </>
@@ -279,6 +279,30 @@ function BuildingLayer({
   const coneRef = useRef<THREE.InstancedMesh>(null);
   const matrix = useMemo(() => new THREE.Matrix4(), []);
   const color = useMemo(() => new THREE.Color(), []);
+  const bodyMaterial = useMemo(
+    () => new THREE.MeshStandardMaterial({ roughness: 0.72, metalness: 0.08, vertexColors: true }),
+    [],
+  );
+  const roofMaterial = useMemo(
+    () => new THREE.MeshStandardMaterial({
+      color: kind === "residential" ? "#7b3f3f" : kind === "commercial" ? "#182f45" : "#4f4b45",
+      roughness: 0.82,
+    }),
+    [kind],
+  );
+  const windowMaterial = useMemo(
+    () => new THREE.MeshStandardMaterial({
+      emissive: "#3d9cc4",
+      emissiveIntensity: 0.55,
+      roughness: 0.32,
+      vertexColors: true,
+    }),
+    [],
+  );
+  const coneMaterial = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: "#6f3535", roughness: 0.86 }),
+    [],
+  );
 
   const items = useMemo<BuildingInstance[]>(() => {
     return map.flatMap((tile, index) => {
@@ -383,7 +407,7 @@ function BuildingLayer({
 
       </instancedMesh>
 
-      <instancedMesh ref={roofRef} args={[UNIT_BOX_GEOMETRY, bodyMaterial, Math.max(1, items.length)]} castShadow>
+      <instancedMesh ref={roofRef} args={[ROOF_GEOMETRY, roofMaterial, Math.max(1, items.length)]} castShadow>
 
       </instancedMesh>
 
@@ -396,7 +420,7 @@ function BuildingLayer({
 
       <instancedMesh
         ref={coneRef}
-        args={[UNIT_BOX_GEOMETRY, bodyMaterial, Math.max(1, items.length)]}
+        args={[CONE_GEOMETRY, coneMaterial, Math.max(1, items.length)]}
         castShadow
       >
 
@@ -454,7 +478,7 @@ function ParkLayer({ map }: { map: CityTile[] }) {
       <instancedMesh ref={trunkRef} args={[TRUNK_GEOMETRY, TRUNK_MATERIAL, Math.max(1, parks.length * 3)]} castShadow>
 
       </instancedMesh>
-      <instancedMesh ref={crownRef} args={[TRUNK_GEOMETRY, TRUNK_MATERIAL, Math.max(1, parks.length * 3)]} castShadow>
+      <instancedMesh ref={crownRef} args={[CROWN_GEOMETRY, CROWN_MATERIAL, Math.max(1, parks.length * 3)]} castShadow>
 
       </instancedMesh>
     </>
