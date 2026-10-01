@@ -723,11 +723,6 @@ function CityWorld({ map, selected, onTileClick, paused, night, onPaintingChange
         <meshStandardMaterial color="#718e68" roughness={0.92} />
       </mesh>
 
-      <gridHelper
-        args={[CITY_W * TILE, CITY_W, "#6b8064", "#7d9475"]}
-        position={[0, 0.012, 0]}
-      />
-
       {hovered !== null && (
         <mesh position={[worldPosition(hovered)[0], 0.045, worldPosition(hovered)[2]]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[TILE * 0.9, TILE * 0.9]} />
@@ -781,6 +776,12 @@ export function CityScene(props: CitySceneProps) {
         maxDistance={155}
         minPolarAngle={0.3}
         maxPolarAngle={Math.PI / 2.18}
+        mouseButtons={{
+          left: CameraControlsImpl.ACTION.NONE,
+          middle: CameraControlsImpl.ACTION.TRUCK,
+          right: CameraControlsImpl.ACTION.ROTATE,
+          wheel: CameraControlsImpl.ACTION.DOLLY,
+        }}
       />
       <CityWorld {...props} onPaintingChange={setPainting} />
     </Canvas>
