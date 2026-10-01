@@ -16,14 +16,14 @@ export const SERVICE_CONFIG: Record<ServiceKind, {
   upkeep: number;
   coverage: number;
 }> = {
-  fire: { label: "Bombeiros", capacity: 950, upkeep: 95, coverage: 5 },
-  police: { label: "Polícia", capacity: 1100, upkeep: 90, coverage: 5 },
-  clinic: { label: "Saúde", capacity: 1400, upkeep: 105, coverage: 4 },
+  fire: { label: "Bombeiros", capacity: 950, upkeep: 55, coverage: 5 },
+  police: { label: "Polícia", capacity: 1100, upkeep: 55, coverage: 5 },
+  clinic: { label: "Saúde", capacity: 1400, upkeep: 65, coverage: 4 },
   cemetery: { label: "Cemitério", capacity: 900, upkeep: 45, coverage: 4 },
-  school: { label: "Escola", capacity: 500, upkeep: 55, coverage: 4 },
-  garbage: { label: "Coleta", capacity: 2300, upkeep: 70, coverage: 5 },
-  power: { label: "Energia", capacity: 3000, upkeep: 120, coverage: 7 },
-  water: { label: "Água/Esgoto", capacity: 2800, upkeep: 80, coverage: 7 },
+  school: { label: "Escola", capacity: 500, upkeep: 35, coverage: 4 },
+  garbage: { label: "Coleta", capacity: 2300, upkeep: 45, coverage: 5 },
+  power: { label: "Energia", capacity: 3000, upkeep: 70, coverage: 7 },
+  water: { label: "Água/Esgoto", capacity: 2800, upkeep: 50, coverage: 7 },
 };
 
 export type CityMetrics = {
@@ -110,7 +110,7 @@ export function calculateCityMetrics(map: CityTile[], taxes: TaxRates): CityMetr
       0,
     );
 
-  const roadUpkeep = roads * 5;
+  const roadUpkeep = roads * 1.5;
   const netIncome = taxRevenue - serviceUpkeep - roadUpkeep;
 
   const averageTax = (taxes.residential + taxes.commercial + taxes.industrial) / 3;
