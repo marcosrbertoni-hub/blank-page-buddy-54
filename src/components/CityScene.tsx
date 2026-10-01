@@ -354,9 +354,9 @@ function BuildingLayer({
       <instancedMesh
         ref={bodyRef}
         args={[UNIT_BOX_GEOMETRY, bodyMaterial, Math.max(1, items.length)]}
-        castShadow
         receiveShadow
         onClick={handleClick}
+        onPointerDown={handleClick}
       >
 
       </instancedMesh>
@@ -368,6 +368,12 @@ function BuildingLayer({
       <instancedMesh
         ref={windowRef}
         args={[WINDOW_GEOMETRY, windowMaterial, Math.max(1, items.length * 2)]}
+        onClick={(event: any) => {
+          event.stopPropagation();
+          const id = event.instanceId;
+          const item = typeof id === "number" ? items[Math.floor(id / 2)] : undefined;
+          if (item) onTileClick(item.index);
+        }}
       >
 
       </instancedMesh>
@@ -375,7 +381,7 @@ function BuildingLayer({
       <instancedMesh
         ref={coneRef}
         args={[CONE_GEOMETRY, coneMaterial, Math.max(1, items.length)]}
-        castShadow
+        onClick={handleClick}
       >
 
       </instancedMesh>
