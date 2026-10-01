@@ -707,7 +707,7 @@ export function CityScene(props: CitySceneProps) {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      controls.current?.setLookAt(64, 56, 64, 0, 0, 0, true);
+      controls.current?.setLookAt(50, 43, 50, 0, 0, 0, true);
     }, 40);
     return () => window.clearTimeout(timer);
   }, []);
@@ -716,7 +716,7 @@ export function CityScene(props: CitySceneProps) {
     <Canvas
       shadows
       dpr={[0.8, 1]}
-      camera={{ position: [64, 56, 64], fov: 48, near: 0.1, far: 520 }}
+      camera={{ position: [50, 43, 50], fov: 45, near: 0.1, far: 520 }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping;
@@ -729,7 +729,7 @@ export function CityScene(props: CitySceneProps) {
         makeDefault
         smoothTime={0.16}
         draggingSmoothTime={0.1}
-        minDistance={24}
+        minDistance={16}
         maxDistance={155}
         minPolarAngle={0.3}
         maxPolarAngle={Math.PI / 2.18}
