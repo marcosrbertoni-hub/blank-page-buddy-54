@@ -1,0 +1,65 @@
+name: Replace project with Skyline City
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  replace-and-build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.0'
+          cache: npm
+
+      - name: Replace project with Fable Cities source
+        shell: bash
+        run: |
+          set -euo pipefail
+          FABLE_SHA="aea8b1035030952555395de0c1de14ba693a1427"
+          rm -rf /tmp/fable-cities
+          git clone https://github.com/rawprogress/fable-cities.git /tmp/fable-cities
+          git -C /tmp/fable-cities checkout "$FABLE_SHA"
+
+          find . -mindepth 1 -maxdepth 1 \
+            ! -name '.git' \
+            ! -name '.github' \
+            -exec rm -rf {} +
+
+          rsync -a --delete --exclude='.git' /tmp/fable-cities/ ./
+
+          find . -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.json' -o -name '*.html' -o -name '*.md' -o -name '*.txt' -o -name '*.css' \) -print0 \
+            | xargs -0 sed -i \
+              -e 's/Fable Cities/Skyline City/g' \
+              -e 's/fable-cities/skyline-city/g' \
+              -e 's/fablecities\\.rawscollections\\.com/blank-page-buddy-54.lovable.app/g' \
+              -e 's#https://github.com/rawprogress/fable-cities#https://github.com/marcosrbertoni-hub/blank-page-buddy-54#g'
+
+          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.name='skyline-city'; p.description='Skyline City — browser city builder based on the open-source Fable Cities project'; fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\\n')"
+
+      - name: Install dependencies and compile production build
+        run: npm install --no-audit --no-fund && npm run build
+
+      - name: Commit the finished project to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          rm -f .github/workflows/replace-with-fable.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: replace prototype with compiled Skyline City base [skip ci]" || exit 0
+          git push origin main
