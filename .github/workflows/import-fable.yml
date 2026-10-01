@@ -1,0 +1,81 @@
+name: Import Fable Cities
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Download Fable Cities
+        run: |
+          git clone --depth 1 https://github.com/rawprogress/fable-cities.git /tmp/fable-cities
+          cd /tmp/fable-cities
+          git fetch --depth 1 origin aea8b1035030952555395de0c1de14ba693a1427
+          git checkout aea8b1035030952555395de0c1de14ba693a1427
+
+      - name: Replace project with Fable base
+        run: |
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.github' -exec rm -rf {} +
+          rsync -a --exclude='.git' --exclude='.github' /tmp/fable-cities/ ./
+
+          python3 - <<'PY'
+          from pathlib import Path
+          roots = [Path('src'), Path('public'), Path('reference'), Path('docs'), Path('tools'), Path('index.html'), Path('package.json'), Path('vite.config.js')]
+          for root in roots:
+              files = [root] if root.is_file() else ([p for p in root.rglob('*') if p.is_file()] if root.exists() else [])
+              for p in files:
+                  try:
+                      s = p.read_text(encoding='utf-8')
+                  except Exception:
+                      continue
+                  s = s.replace('Fable Cities', 'Skyline City')
+                  s = s.replace('fable-cities', 'skyline-city')
+                  s = s.replace('https://github.com/rawprogress/fable-cities', 'https://github.com/marcosrbertoni-hub/blank-page-buddy-54')
+                  s = s.replace('https://fablecities.rawscollections.com', 'https://blank-page-buddy-54.lovable.app')
+                  p.write_text(s, encoding='utf-8')
+          PY
+
+          if [ -f src/core/Config.js ]; then
+            python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/core/Config.js')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('demo: true', 'demo: false')
+          s=s.replace('demo = true', 'demo = false')
+          s=s.replace("quality: 'high'", "quality: 'medium'")
+          s=s.replace('quality: "high"', 'quality: "medium"')
+          p.write_text(s, encoding='utf-8')
+          PY
+          fi
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build
+        run: npm run build
+
+      - name: Commit imported base
+        run: |
+          rm -rf dist
+          rm -f .github/workflows/import-fable.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Replace prototype with Fable Cities base for Skyline City"
+          git push origin HEAD:main
