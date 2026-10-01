@@ -22,6 +22,7 @@ function Game() {
   useEffect(() => {
     if (booted) return;
     booted = true;
+    // @ts-ignore vanilla JS engine
     import("../fable/main.js").catch((err) => console.error("[skyline] boot failed", err));
   }, []);
 
