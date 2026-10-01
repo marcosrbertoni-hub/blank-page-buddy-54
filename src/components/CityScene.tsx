@@ -73,6 +73,21 @@ const ROAD_COLS = new Set([5, 13, 21]);
 
 const idx = (x: number, y: number) => y * CITY_W + x;
 
+const ROAD_GEOMETRY = new THREE.BoxGeometry(TILE * 0.88, 0.08, TILE * 0.88);
+const ROAD_MATERIAL = new THREE.MeshStandardMaterial({ color: "#30343a", roughness: 0.9 });
+const MARK_GEOMETRY = new THREE.BoxGeometry(1, 0.018, 1);
+const MARK_MATERIAL = new THREE.MeshStandardMaterial({ color: "#e6c34a", emissive: "#5c4300", emissiveIntensity: 0.15 });
+const UNIT_BOX_GEOMETRY = new THREE.BoxGeometry(1, 1, 1);
+const ROOF_GEOMETRY = new THREE.BoxGeometry(1, 0.18, 1);
+const WINDOW_GEOMETRY = new THREE.BoxGeometry(1, 0.38, 0.04);
+const CONE_GEOMETRY = new THREE.ConeGeometry(1, 1, 4);
+const PARK_GEOMETRY = new THREE.BoxGeometry(TILE * 0.9, 0.08, TILE * 0.9);
+const PARK_MATERIAL = new THREE.MeshStandardMaterial({ color: "#3c9257", roughness: 1 });
+const TRUNK_GEOMETRY = new THREE.CylinderGeometry(0.11, 0.16, 1.5, 6);
+const TRUNK_MATERIAL = new THREE.MeshStandardMaterial({ color: "#65452f", roughness: 1 });
+const CROWN_GEOMETRY = new THREE.IcosahedronGeometry(0.9, 0);
+const CROWN_MATERIAL = new THREE.MeshStandardMaterial({ color: "#359454", roughness: 0.9 });
+
 const hash = (x: number, y: number) => {
   const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
   return n - Math.floor(n);
@@ -237,13 +252,11 @@ function RoadLayer({ map }: { map: CityTile[] }) {
 
   return (
     <>
-      <instancedMesh ref={roadRef} args={[undefined as never, undefined as never, Math.max(1, roads.length)]} receiveShadow>
-        <boxGeometry args={[TILE * 0.88, 0.08, TILE * 0.88]} />
-        <meshStandardMaterial color="#30343a" roughness={0.9} />
+      <instancedMesh ref={roadRef} args={[ROAD_GEOMETRY, ROAD_MATERIAL, Math.max(1, roads.length)]} receiveShadow>
+
       </instancedMesh>
-      <instancedMesh ref={markRef} args={[undefined as never, undefined as never, Math.max(1, roads.length)]}>
-        <boxGeometry args={[1, 0.018, 1]} />
-        <meshStandardMaterial color="#e6c34a" emissive="#5c4300" emissiveIntensity={0.15} />
+      <instancedMesh ref={markRef} args={[ROAD_GEOMETRY, ROAD_MATERIAL, Math.max(1, roads.length)]}>
+
       </instancedMesh>
     </>
   );
@@ -362,35 +375,31 @@ function BuildingLayer({
     <>
       <instancedMesh
         ref={bodyRef}
-        args={[undefined as never, undefined as never, Math.max(1, items.length)]}
+        args={[UNIT_BOX_GEOMETRY, bodyMaterial, Math.max(1, items.length)]}
         castShadow
         receiveShadow
         onClick={handleClick}
       >
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial roughness={0.72} metalness={0.08} vertexColors />
+
       </instancedMesh>
 
-      <instancedMesh ref={roofRef} args={[undefined as never, undefined as never, Math.max(1, items.length)]} castShadow>
-        <boxGeometry args={[1, 0.18, 1]} />
-        <meshStandardMaterial color={kind === "residential" ? "#7b3f3f" : kind === "commercial" ? "#182f45" : "#4f4b45"} roughness={0.82} />
+      <instancedMesh ref={roofRef} args={[UNIT_BOX_GEOMETRY, bodyMaterial, Math.max(1, items.length)]} castShadow>
+
       </instancedMesh>
 
       <instancedMesh
         ref={windowRef}
-        args={[undefined as never, undefined as never, Math.max(1, items.length * 2)]}
+        args={[WINDOW_GEOMETRY, windowMaterial, Math.max(1, items.length * 2)]}
       >
-        <boxGeometry args={[1, 0.38, 0.04]} />
-        <meshStandardMaterial emissive="#3d9cc4" emissiveIntensity={0.55} roughness={0.32} vertexColors />
+
       </instancedMesh>
 
       <instancedMesh
         ref={coneRef}
-        args={[undefined as never, undefined as never, Math.max(1, items.length)]}
+        args={[UNIT_BOX_GEOMETRY, bodyMaterial, Math.max(1, items.length)]}
         castShadow
       >
-        <coneGeometry args={[1, 1, 4]} />
-        <meshStandardMaterial color="#6f3535" roughness={0.86} />
+
       </instancedMesh>
     </>
   );
@@ -439,17 +448,14 @@ function ParkLayer({ map }: { map: CityTile[] }) {
 
   return (
     <>
-      <instancedMesh ref={parkRef} args={[undefined as never, undefined as never, Math.max(1, parks.length)]} receiveShadow>
-        <boxGeometry args={[TILE * 0.9, 0.08, TILE * 0.9]} />
-        <meshStandardMaterial color="#3c9257" roughness={1} />
+      <instancedMesh ref={parkRef} args={[PARK_GEOMETRY, PARK_MATERIAL, Math.max(1, parks.length)]} receiveShadow>
+
       </instancedMesh>
-      <instancedMesh ref={trunkRef} args={[undefined as never, undefined as never, Math.max(1, parks.length * 3)]} castShadow>
-        <cylinderGeometry args={[0.11, 0.16, 1.5, 6]} />
-        <meshStandardMaterial color="#65452f" roughness={1} />
+      <instancedMesh ref={trunkRef} args={[TRUNK_GEOMETRY, TRUNK_MATERIAL, Math.max(1, parks.length * 3)]} castShadow>
+
       </instancedMesh>
-      <instancedMesh ref={crownRef} args={[undefined as never, undefined as never, Math.max(1, parks.length * 3)]} castShadow>
-        <icosahedronGeometry args={[0.9, 0]} />
-        <meshStandardMaterial color="#359454" roughness={0.9} />
+      <instancedMesh ref={crownRef} args={[TRUNK_GEOMETRY, TRUNK_MATERIAL, Math.max(1, parks.length * 3)]} castShadow>
+
       </instancedMesh>
     </>
   );
