@@ -20,11 +20,11 @@ export class Config {
     this.menuParam = p.get('menu');
     this.showcase = p.get('showcase') ? p.get('showcase').split(',').map((s) => s.trim()).filter(Boolean) : null;
     // demo city is on by default, except when a module showcase is requested explicitly
-    this.demo = p.has('demo') ? p.get('demo') !== '0' : !this.showcase;
+    this.demo = p.has('demo') ? p.get('demo') !== '0' : false;
     this.seed = int(p.get('seed'), 1337);
     this.time = float(p.get('time'), 14.0);
     this.cam = p.get('cam') || 'city';
-    this.quality = QUALITY[p.get('quality')] ? p.get('quality') : 'high';
+    this.quality = QUALITY[p.get('quality')] ? p.get('quality') : 'medium';
     this.paused = p.get('paused') === '1';
     this.focus = p.get('focus') ? p.get('focus').split(',').map((s) => s.trim()).filter(Boolean) : null;
     this.weather = p.get('weather') || 'clear';
