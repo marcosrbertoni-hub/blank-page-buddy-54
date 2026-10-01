@@ -1,5 +1,5 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "skyline-city",
   "private": true,
   "sideEffects": false,
   "type": "module",
@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "predev": "node scripts/sync-fable.mjs",
+    "prebuild": "node scripts/sync-fable.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
@@ -91,5 +93,6 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "8.1.5"
-  }
+  },
+  "description": "Skyline City — browser city builder based on the open-source Fable Cities architecture"
 }
