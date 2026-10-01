@@ -1,32 +1,25 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-.output
-.vinxi
-.tanstack/**
-.nitro
-*.local
-
-# Wrangler / Cloudflare
-.wrangler/
-.dev.vars
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+node_modules/
+dist/
+shots/
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+*.log
+.claude/
+
+# Third-party copyrighted material — never publish.
+# Twelve official Cities: Skylines II screenshots the critic agents graded against.
+# They belong to Colossal Order / Paradox Interactive. See reference/README.md.
+reference/*.jpg
+reference/*.png
+
+# Deployment: server hostnames, paths and vhost configuration for a private machine,
+# plus the personal website that is not part of the game. See deploy/README.md.
+deploy/
+
+# Reviews and screenshots of that personal website — same reason as deploy/.
+# They are pictures of a site that is not this project.
+docs/critique/site_*
+
+
+# Python bytecode embeds absolute source paths
+__pycache__/
+*.pyc
