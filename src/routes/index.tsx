@@ -101,7 +101,7 @@ function CityGame() {
   const [speed, setSpeed] = useState(1);
   const [selected, setSelected] = useState<number | null>(null);
   const [night, setNight] = useState(false);
-  const [notice, setNotice] = useState("Sua cidade está pronta para crescer.");
+  const [notice, setNotice] = useState("Terreno vazio. Construa uma estrada para iniciar a cidade.");
   const [taxes, setTaxes] = useState<TaxRates>({
     residential: 9,
     commercial: 9,
@@ -111,7 +111,7 @@ function CityGame() {
   const metrics = useMemo(() => calculateCityMetrics(map, taxes), [map, taxes]);
 
   useEffect(() => {
-    if (paused) return;
+    if (paused || !map.some((tile) => tile.kind !== "empty" && tile.kind !== "water")) return;
 
     const timer = window.setInterval(() => {
       setMap((current) => {
@@ -129,7 +129,7 @@ function CityGame() {
     }, 4500 / speed);
 
     return () => window.clearInterval(timer);
-  }, [paused, speed, taxes]);
+  }, [paused, speed, taxes, map]);
 
   const onTileClick = (index: number) => {
     const current = map[index];
@@ -199,9 +199,10 @@ function CityGame() {
     setHappiness(78);
     setMonth(1);
     setSelected(null);
+    localStorage.removeItem("skyline-city-save-v1");
     setPaused(false);
     setTaxes({ residential: 9, commercial: 9, industrial: 9 });
-    setNotice("Nova cidade criada.");
+    setNotice("Nova cidade criada. Construa uma estrada para começar.");
   };
 
   const saveCity = () => {
@@ -276,7 +277,7 @@ function CityGame() {
           <button className="speed-button" onClick={() => setSpeed((value) => (value === 3 ? 1 : value + 1))}>
             x{speed}
           </button>
-          <button className="top-action danger" onClick={reset} title="Nova cidade">
+          <button className="top-action danger" onClick={reset} title="Nova cidade — começa do zero">
             <RotateCcw size={17} />
           </button>
         </div>
