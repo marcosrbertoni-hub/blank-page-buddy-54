@@ -5,8 +5,8 @@ export default defineConfig({
   // (GitHub Pages project sites, a reverse-proxied /game/ prefix, file://).
   base: './',
   server: {
-    host: '127.0.0.1',
-    port: 5180,
+    host: '::',
+    port: 8080,
     strictPort: true,
     hmr: { overlay: false },
   },

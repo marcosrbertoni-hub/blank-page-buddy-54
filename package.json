@@ -5,13 +5,14 @@
   "description": "Skyline City - desktop city builder",
   "main": "electron/main.cjs",
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --port 5180",
+    "dev": "vite",
     "build": "vite build",
     "build:win": "npm run build && electron-builder --win portable --x64",
     "preview": "vite preview --port 5174",
     "shot": "node tools/shot.mjs",
     "check": "node tools/check.mjs",
-    "build:win:low": "npm run build && electron-builder --win portable --x64 -c.extraMetadata.lowMode=true -c.win.artifactName=Skyline-City-Low.exe"
+    "build:win:low": "npm run build && electron-builder --win portable --x64 -c.extraMetadata.lowMode=true -c.win.artifactName=Skyline-City-Low.exe",
+    "build:dev": "vite build --mode development"
   },
   "devDependencies": {
     "electron": "44.4.5",
