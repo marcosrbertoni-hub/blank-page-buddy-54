@@ -16,10 +16,13 @@ jobs:
           cache: npm
       - run: npm install
       - run: npm run build:win
+      - run: npm run build:win:low
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: skyline-windows-${{ github.run_number }}
           name: Skyline City Windows build ${{ github.run_number }}
-          files: release/Skyline-City-Windows.exe
+          files: |
+            release/Skyline-City-Windows.exe
+            release/Skyline-City-Low.exe
           make_latest: true
           generate_release_notes: true
