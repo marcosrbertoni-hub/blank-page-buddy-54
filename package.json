@@ -1,56 +1,17 @@
 {
   "name": "skyline-city",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
-  "description": "Skyline City - desktop city builder",
-  "main": "electron/main.cjs",
+  "description": "Skyline City - browser city builder powered by 3d.city",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:win": "npm run build && electron-builder --win portable --x64",
-    "preview": "vite preview --port 5174",
-    "shot": "node tools/shot.mjs",
-    "check": "node tools/check.mjs",
-    "build:win:low": "npm run build && electron-builder --win portable --x64 -c.extraMetadata.lowMode=true -c.win.artifactName=Skyline-City-Low.exe",
-    "build:dev": "vite build --mode development"
+    "build:dev": "vite build --mode development",
+    "preview": "vite preview"
   },
   "devDependencies": {
-    "electron": "44.4.5",
-    "electron-builder": "26.15.3",
-    "puppeteer-core": "^25.9.0",
-    "three": "^0.185.1",
     "vite": "^8.2.2"
   },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/marcosrbertoni-hub/blank-page-buddy-54.git"
-  },
-  "homepage": "https://blank-page-buddy-54.lovable.app",
-  "engines": {
-    "node": ">=20.19"
-  },
-  "build": {
-    "appId": "com.skylinecity.game",
-    "productName": "Skyline City",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "package.json"
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "artifactName": "Skyline-City-Windows.${ext}"
-    }
-  }
+  "license": "GPL-3.0-or-later"
 }
