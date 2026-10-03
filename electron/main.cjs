@@ -1,0 +1,10 @@
+const { app, BrowserWindow } = require('electron');
+const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
+const { URL } = require('node:url');
+let server;
+function mime(file){const ext=path.extname(file).toLowerCase();return {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.hdr':'application/octet-stream','.glb':'model/gltf-binary','.mp3':'audio/mpeg','.wav':'audio/wav','.svg':'image/svg+xml'}[ext]||'application/octet-stream';}
+function startServer(root){return new Promise((resolve,reject)=>{server=http.createServer((req,res)=>{try{const url=new URL(req.url||'/', 'http://127.0.0.1');let rel=decodeURIComponent(url.pathname);if(rel==='/')rel='/game.html';const base=path.resolve(root);const file=path.resolve(root,'.'+rel);if(file!==base&&!file.startsWith(base+path.sep)){res.writeHead(403);res.end();return;}fs.stat(file,(err,st)=>{if(err||!st.isFile()){res.writeHead(404);res.end('Not found');return;}res.writeHead(200,{'Content-Type':mime(file),'Cache-Control':'no-store'});fs.createReadStream(file).pipe(res);});}catch{res.writeHead(400);res.end();}});server.on('error',reject);server.listen(0,'127.0.0.1',()=>resolve(server.address().port));});}
+async function createWindow(){const root=path.join(__dirname,'..','dist');const port=await startServer(root);const win=new BrowserWindow({width:1440,height:900,minWidth:1024,minHeight:700,backgroundColor:'#0b0f14',autoHideMenuBar:true,webPreferences:{contextIsolation:true,nodeIntegration:false}});await win.loadURL('http://127.0.0.1:'+port+'/game.html');win.on('closed',()=>{if(server)server.close();});}
+app.whenReady().then(createWindow);app.on('window-all-closed',()=>app.quit());
