@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
-<title>3D.CITY</title>
+<title>Skyline City</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 <link rel="icon" href="favicon.ico" />
@@ -12,9 +12,13 @@
 <div id="container"></div>
 <div id="hub"></div>
 <script type="module">
-	
+
 	import { Main } from './build/MainGame.module.js';
-	Main.init()
+	import { localizeGame } from './pt-BR.js';
+
+	// Observa o #hub antes de iniciar o jogo para traduzir inclusive as mensagens de carregamento.
+	localizeGame();
+	Main.init();
 
 </script>
 </body></html>
