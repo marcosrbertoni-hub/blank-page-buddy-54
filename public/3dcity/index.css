@@ -45,7 +45,7 @@ body { background: var(--c-bg); font: 12px/1.4 var(--font-ui); width:100%; heigh
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
   -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
+   backdrop-filter: var(--blur);
   color: var(--c-text);
 }
 
